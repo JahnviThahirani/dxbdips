@@ -1,6 +1,6 @@
 """
 main.py — FastAPI backend for DXB Dips
-Deployed on Render (free tier)
+Deployed on Railway
 """
 import os
 import sys
@@ -13,14 +13,13 @@ sys.path.insert(0, str(ROOT))
 
 from backend.db import get_drops, get_stats, get_listing_history
 import asyncio
-import threading
 
-app = FastAPI(title="DXB Dips API", version="1.0.0")
+app = FastAPI(title="DXB Dips API", version="1.1.0")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -30,28 +29,28 @@ AED_TO_USD = 0.2723
 def enrich_drop(d: dict) -> dict:
     listing = d.get("listings") or {}
     return {
-        "id": d["id"],
-        "listing_id": d["listing_id"],
-        "detected_at": d["detected_at"],
-        "old_price_aed": d["old_price_aed"],
-        "new_price_aed": d["new_price_aed"],
-        "drop_abs_aed": d["drop_abs_aed"],
-        "drop_pct": d["drop_pct"],
-        "drop_abs_usd": round(d["drop_abs_aed"] * AED_TO_USD * 1_000_000),
-        "new_price_usd": round(d["new_price_aed"] * AED_TO_USD, 4),
-        "old_price_usd": round(d["old_price_aed"] * AED_TO_USD, 4),
-        "source": listing.get("source", "bayut"),
-        "type": listing.get("type"),
-        "beds": listing.get("beds"),
-        "baths": listing.get("baths"),
-        "size_sqft": listing.get("size_sqft"),
-        "title": listing.get("title"),
-        "area": listing.get("area"),
-        "building": listing.get("building"),
-        "url": listing.get("url"),
-        "image_url": listing.get("image_url"),
-        "listed_date": listing.get("listed_date"),
-        "first_seen": listing.get("first_seen"),
+        "id":             d["id"],
+        "listing_id":     d["listing_id"],
+        "detected_at":    d["detected_at"],
+        "old_price_aed":  d["old_price_aed"],
+        "new_price_aed":  d["new_price_aed"],
+        "drop_abs_aed":   d["drop_abs_aed"],
+        "drop_pct":       d["drop_pct"],
+        "drop_abs_usd":   round(d["drop_abs_aed"] * AED_TO_USD * 1_000_000),
+        "new_price_usd":  round(d["new_price_aed"] * AED_TO_USD, 4),
+        "old_price_usd":  round(d["old_price_aed"] * AED_TO_USD, 4),
+        "source":         listing.get("source", "propertyfinder"),
+        "type":           listing.get("type"),
+        "beds":           listing.get("beds"),
+        "baths":          listing.get("baths"),
+        "size_sqft":      listing.get("size_sqft"),
+        "title":          listing.get("title"),
+        "area":           listing.get("area"),
+        "building":       listing.get("building"),
+        "url":            listing.get("url"),
+        "image_url":      listing.get("image_url"),
+        "listed_date":    listing.get("listed_date"),
+        "first_seen":     listing.get("first_seen"),
     }
 
 
@@ -70,8 +69,7 @@ async def api_drops(
 
 @app.get("/api/stats")
 async def api_stats(hours: int = Query(24)):
-    stats = get_stats(hours=hours)
-    return stats
+    return get_stats(hours=hours)
 
 
 @app.get("/api/history/{listing_id}")
@@ -84,17 +82,12 @@ async def api_history(listing_id: str):
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "service": "dxbdips-api"}
-
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    return {"status": "ok", "service": "dxbdips-api", "version": "1.1.0", "source": "propertyfinder"}
 
 
 @app.post("/api/trigger-scrape")
 async def trigger_scrape(
-    pages: int = Query(50),
+    pages: int = Query(10),
     secret: str = Query(None),
 ):
     expected = os.environ.get("SCRAPE_SECRET", "dxbdips-scrape-2026")
@@ -109,4 +102,9 @@ async def trigger_scrape(
             print(f"Scrape error: {e}")
 
     asyncio.create_task(run())
-    return {"status": "scrape started", "pages": pages}
+    return {"status": "scrape started", "pages": pages, "source": "propertyfinder"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
