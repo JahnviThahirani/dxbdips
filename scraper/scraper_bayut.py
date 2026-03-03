@@ -15,7 +15,7 @@ ALGOLIA_APP_ID = "5BNAR5PY6Y"
 ALGOLIA_API_KEY = "ae1c4bbf5a1c3f8d955b94f9e74c90be"
 ALGOLIA_INDEX = "bayut-plp-ar-production"
 
-ALGOLIA_URL = f"https://{ALGOLIA_APP_ID}-dsn.algolia.net/1/indexes/{ALGOLIA_INDEX}/query"
+ALGOLIA_URL = f"https://{ALGOLIA_APP_ID}.algolia.net/1/indexes/{ALGOLIA_INDEX}/query"
 
 HEADERS = {
     "X-Algolia-Application-Id": ALGOLIA_APP_ID,
