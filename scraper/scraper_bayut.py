@@ -1,14 +1,20 @@
 """
-scraper_bayut.py — Scrapes Bayut.com using their GraphQL API.
+scraper_bayut.py — Scrapes Bayut.com using their Algolia-based internal API.
+No browser needed — pure httpx JSON calls.
+Targets Dubai properties 2M+ AED for sale.
 """
 import httpx
 import asyncio
-import json
 from datetime import datetime
 
-GRAPHQL_URL = "https://gateway.bayut.com/api/graphql"
+ALGOLIA_APP_ID = "5BNAR5PY6Y"
+ALGOLIA_API_KEY = "ae1c4bbf5a1c3f8d955b94f9e74c90be"
+ALGOLIA_INDEX = "bayut-plp-ar-production"
+ALGOLIA_URL = f"https://{ALGOLIA_APP_ID}.algolia.net/1/indexes/{ALGOLIA_INDEX}/query"
 
 HEADERS = {
+    "X-Algolia-Application-Id": ALGOLIA_APP_ID,
+    "X-Algolia-API-Key": ALGOLIA_API_KEY,
     "Content-Type": "application/json",
     "Accept": "application/json",
     "Referer": "https://www.bayut.com/",
@@ -30,46 +36,19 @@ TYPE_MAP = {
     "hotel apartment": "apartment",
 }
 
-QUERY = """
-query GetListings($page: Int!, $hitsPerPage: Int!) {
-  properties(
-    purpose: "for-sale"
-    locationExternalIDs: "5002"
-    residentialTypes: ["apartment", "villa", "penthouse", "townhouse"]
-    priceMin: 2000000
-    page: $page
-    hitsPerPage: $hitsPerPage
-    lang: "en"
-  ) {
-    hits {
-      externalID
-      title
-      price
-      rooms
-      baths
-      area
-      location {
-        name
-      }
-      propertyType {
-        name
-      }
-      slug
-      coverPhoto {
-        url
-      }
-    }
-    nbHits
-    nbPages
-  }
-}
-"""
-
 
 def normalize_type(raw: str) -> str:
     if not raw:
         return "apartment"
     return TYPE_MAP.get(raw.lower().strip(), raw.lower().strip())
+
+
+def parse_location(hit: dict) -> tuple:
+    locations = hit.get("location", [])
+    names = [l.get("name", "") for l in locations if l.get("name")]
+    building = names[0] if names else ""
+    area = names[1] if len(names) > 1 else ""
+    return building, area
 
 
 def parse_hit(hit: dict) -> dict | None:
@@ -78,29 +57,23 @@ def parse_hit(hit: dict) -> dict | None:
         if not price or price < MIN_PRICE_AED:
             return None
 
-        locations = hit.get("location", [])
-        names = [l.get("name", "") for l in locations if l.get("name")]
-        building = names[0] if names else ""
-        area = names[1] if len(names) > 1 else ""
+        building, area = parse_location(hit)
 
-        prop_type = hit.get("propertyType", {})
-        type_name = prop_type.get("name", "") if prop_type else ""
-
-        cover = hit.get("coverPhoto", {})
-        image_url = cover.get("url", "") if cover else ""
+        photos = hit.get("coverPhoto", {}) or {}
+        image_url = photos.get("url", "") if isinstance(photos, dict) else ""
 
         return {
-            "id": f"bayut_{hit['externalID']}",
+            "id": f"bayut_{hit['objectID']}",
             "source": "bayut",
-            "type": normalize_type(type_name),
-            "beds": hit.get("rooms") or 0,
+            "type": normalize_type(hit.get("category", "")),
+            "beds": hit.get("beds") or 0,
             "baths": hit.get("baths") or 0,
             "size_sqft": round(hit.get("area") or 0),
             "price_aed": int(price),
             "title": hit.get("title", "")[:200],
             "building": building[:100],
             "area": area[:100],
-            "url": f"https://www.bayut.com/property/details-{hit.get('slug', '')}.html",
+            "url": f"https://www.bayut.com{hit.get('slug', '')}",
             "image_url": image_url[:500],
             "scraped_at": datetime.utcnow().isoformat(),
         }
@@ -115,20 +88,22 @@ async def scrape(max_pages: int = 50) -> list[dict]:
     async with httpx.AsyncClient(headers=HEADERS, follow_redirects=True) as client:
         for page in range(max_pages):
             payload = {
-                "query": QUERY,
-                "variables": {"page": page, "hitsPerPage": HITS_PER_PAGE},
+                "query": "",
+                "hitsPerPage": HITS_PER_PAGE,
+                "page": page,
+                "filters": f"price >= {MIN_PRICE_AED} AND purpose:for-sale AND location.country.slug:united-arab-emirates",
+                "facetFilters": [["location.country.slug:united-arab-emirates"]],
             }
             try:
-                resp = await client.post(GRAPHQL_URL, json=payload, timeout=20)
+                resp = await client.post(ALGOLIA_URL, json=payload, timeout=15)
                 resp.raise_for_status()
                 data = resp.json()
 
-                props = data.get("data", {}).get("properties", {})
-                hits = props.get("hits", [])
-                nb_pages = props.get("nbPages", 0)
+                hits = data.get("hits", [])
+                nb_pages = data.get("nbPages", 0)
 
                 if page == 0:
-                    print(f"[Bayut] Total hits: {props.get('nbHits', 0)} across {nb_pages} pages")
+                    print(f"[Bayut] Total hits: {data.get('nbHits', 0)} across {nb_pages} pages")
 
                 if not hits:
                     break
@@ -154,6 +129,7 @@ async def scrape(max_pages: int = 50) -> list[dict]:
 
     print(f"[Bayut] Done. {len(listings)} unique listings scraped.")
     return listings
+
 
 async def run_scrape(max_pages: int = 50) -> list[dict]:
     return await scrape(max_pages)
