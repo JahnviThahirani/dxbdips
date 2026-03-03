@@ -1,42 +1,47 @@
-# 📉 Dubai Dips (dxbdips.com)
+# 📉 DXB Dips
 
-> Real-time price drop tracker for Dubai real estate.
-> Monitors 2M+ AED properties on Bayut every 6 hours and surfaces meaningful price drops.
+> Real-time price drop tracker for Dubai luxury real estate.  
+> Monitors 10,000+ listings on Property Finder every 6 hours and surfaces meaningful price reductions.
+
+**Live:** [dxbdips.vercel.app](https://dxbdips.vercel.app)
 
 ---
 
 ## What It Does
 
-Dubai Dips scrapes Bayut.com every 6 hours, compares new prices against stored historical prices, and surfaces any property that dropped in price. Users can filter by property type, time window (24h / 7d / 30d), and drop size. Clicking a listing opens a modal with a full SVG price history chart.
+DXB Dips scrapes Property Finder every 6 hours, compares new prices against stored historical prices, and surfaces any property that dropped in price. Users can filter by property type, price bracket, time window (24h / 7d / 30d), and drop size. Clicking a listing opens a modal with a full SVG price history chart and a direct link to the Property Finder listing.
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     DUBAI DIPS STACK                        │
-├──────────────────┬──────────────────┬───────────────────────┤
-│   DATA LAYER     │   API LAYER      │   FRONTEND LAYER      │
-│                  │                  │                        │
-│  GitHub Actions  │  FastAPI         │  React + Vite         │
-│  (cron, free)    │  (Render, free)  │  (Vercel, free)       │
-│       ↓          │       ↓          │       ↓               │
-│  Bayut Scraper   │  /api/drops      │  Drop Feed            │
-│  (httpx/Algolia) │  /api/stats      │  Price History Modal  │
-│       ↓          │  /api/history    │  Filters & Sort       │
-│  Supabase        │       ↑          │  USD / AED Toggle     │
-│  (Postgres, free)│  reads Supabase  │  24h / 7d / 30d       │
-└──────────────────┴──────────────────┴───────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                        DXB DIPS STACK                           │
+├──────────────────┬────────────────────┬─────────────────────────┤
+│   DATA LAYER     │   API LAYER        │   FRONTEND LAYER        │
+│                  │                    │                         │
+│  GitHub Actions  │  FastAPI           │  React + Vite           │
+│  (cron, free)    │  (Railway)         │  (Vercel)               │
+│       ↓          │       ↓            │       ↓                 │
+│  PF Scraper      │  /api/drops        │  Drop Feed              │
+│  (httpx +        │  /api/stats        │  Price History Modal    │
+│   __NEXT_DATA__) │  /api/history      │  Area Analytics         │
+│       ↓          │  /api/trigger-     │  Filters & Sort         │
+│  Supabase        │    scrape          │  USD / AED Toggle       │
+│  (Postgres)      │       ↑            │  24h / 7d / 30d         │
+│                  │  reads Supabase    │                         │
+└──────────────────┴────────────────────┴─────────────────────────┘
 ```
 
 ### Data Flow
 
-1. **GitHub Actions** triggers every 6 hours → runs `scraper/runner.py`
-2. **Scraper** hits Bayut's internal Algolia API (no browser needed, pure JSON)
-3. Each listing is **upserted** into Supabase — if price dropped vs last known, a `price_drop` row is written
-4. **FastAPI on Render** serves `/api/drops`, `/api/stats`, `/api/history/{id}` by reading from Supabase
-5. **React on Vercel** fetches from the API, renders the drop feed with filters, auto-refreshes every 5 minutes
+1. **GitHub Actions** triggers every 6 hours → POSTs to `/api/trigger-scrape` on Railway
+2. **Railway API** spawns the scraper as a background async task
+3. **Scraper** fetches Property Finder search pages, extracts `__NEXT_DATA__` JSON (no browser needed)
+4. Each listing is **upserted** into Supabase — if price dropped vs last known, a `price_drop` row is written
+5. **FastAPI on Railway** serves `/api/drops`, `/api/stats`, `/api/history/{id}` by reading from Supabase
+6. **React on Vercel** fetches from the API, renders the drop feed with filters, auto-refreshes every 5 minutes
 
 ---
 
@@ -46,23 +51,24 @@ Dubai Dips scrapes Bayut.com every 6 hours, compares new prices against stored h
 dxbdips/
 ├── .github/
 │   └── workflows/
-│       └── scrape.yml          ← GitHub Actions cron job
+│       └── scrape.yml          ← GitHub Actions cron (triggers Railway every 6h)
 ├── backend/
-│   ├── main.py                 ← FastAPI app (Render)
+│   ├── main.py                 ← FastAPI app (Railway)
 │   ├── db.py                   ← Supabase client + all DB operations
 │   └── schema.sql              ← Run once in Supabase SQL editor
 ├── scraper/
-│   ├── scraper_bayut.py        ← Bayut Algolia API scraper
-│   └── runner.py               ← Orchestrator (called by GitHub Actions)
+│   ├── scraper_pf.py           ← Property Finder __NEXT_DATA__ scraper
+│   └── runner.py               ← Orchestrator (called by /api/trigger-scrape)
 ├── frontend/
 │   ├── src/
 │   │   ├── App.jsx             ← Root component, state management
-│   │   ├── index.css           ← Global styles (Syne + DM Mono fonts)
+│   │   ├── index.css           ← Global styles (Playfair Display + Manrope)
 │   │   ├── components/
-│   │   │   ├── Header.jsx      ← Logo, live stats, time/currency toggles
+│   │   │   ├── Header.jsx      ← Logo, last scan badge, time/currency toggles
 │   │   │   ├── StatBar.jsx     ← 4 stat cards (biggest drop, total value etc)
 │   │   │   ├── FilterBar.jsx   ← Type filters, sort dropdown
 │   │   │   ├── DropFeed.jsx    ← List of drop cards + skeleton loading
+│   │   │   ├── AreaAnalytics.jsx ← Area-level drop breakdown
 │   │   │   └── HistoryModal.jsx← Click-through modal with SVG price chart
 │   │   └── lib/
 │   │       └── utils.js        ← formatPrice, formatDrop, timeAgo helpers
@@ -71,7 +77,6 @@ dxbdips/
 │   ├── package.json
 │   └── vercel.json
 ├── requirements.txt
-├── render.yaml                 ← Render deployment config
 └── README.md
 ```
 
@@ -80,19 +85,19 @@ dxbdips/
 ## Database Schema (Supabase / Postgres)
 
 ### `listings`
-Stores one row per unique Bayut listing ID. Updated on every scrape.
+One row per unique Property Finder listing ID. Updated on every scrape.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| id | text PK | `by_{externalID}` |
-| source | text | `bayut` |
+| id | text PK | `pf_{listing_id}` |
+| source | text | `propertyfinder` |
 | type | text | apartment / villa / penthouse / townhouse |
 | beds / baths | integer | bedroom/bathroom count |
 | size_sqft | real | area in sqft |
 | title | text | listing title |
-| area | text | neighbourhood |
+| area | text | neighbourhood path (e.g. "Dubai, Jumeirah, La Mer") |
 | building | text | building/community name |
-| url | text | full Bayut listing URL |
+| url | text | full Property Finder listing URL |
 | image_url | text | cover photo URL |
 | last_price | real | most recent price in AED millions |
 | first_seen | timestamptz | when we first discovered this listing |
@@ -125,12 +130,65 @@ Audit log of every scrape run.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| source | text | `bayut` |
+| source | text | `propertyfinder` |
 | started_at | timestamptz | scrape start time |
-| finished_at | timestamptz | scrape end time |
+| finished_at | timestamptz | scrape end time (NULL if still running) |
 | listings_found | integer | total listings processed |
 | drops_detected | integer | price drops found this run |
 | status | text | `running` / `done` / `error` |
+
+---
+
+## Scraper Details
+
+**Source:** Property Finder via embedded `__NEXT_DATA__` JSON
+
+Property Finder renders its search results server-side using Next.js and embeds the full listing data as a JSON blob in the HTML. This means:
+- No browser automation, no Playwright, no Chromium
+- Pure `httpx` HTML fetch + regex extraction of `__NEXT_DATA__`
+- Fast, lightweight, and reliable
+
+**Search parameters:**
+- `c=1` — for sale only
+- `rp=y` — price reduced listings (prioritises motivated sellers)
+- `ob=mr` — sorted by most recent
+- Up to 500 pages × ~20 listings = ~10,000 listings per run
+- 2.5 second delay between pages (polite crawling)
+
+**Drop detection logic:**
+```python
+if new_price < last_known_price:
+    drop_abs = last_known_price - new_price
+    drop_pct = (drop_abs / last_known_price) * 100
+    → write to price_drops table
+    → update price_history table
+```
+
+**Important:** The first scrape establishes the baseline only. Price drops are detected from the second scrape onwards when the same listing ID appears with a lower price.
+
+**Drop tiers:**
+- 🔴 High — 10%+ drop
+- 🟠 Medium — 5–10% drop  
+- ⚪ Low — under 5% drop
+
+---
+
+## Automated Scraping
+
+Scraping is triggered via GitHub Actions → Railway API (not directly from GitHub Actions), which avoids needing Python/Supabase credentials in GitHub and keeps the scrape logic server-side.
+
+**scrape.yml flow:**
+```
+GitHub Actions cron (every 6h)
+  → POST /api/trigger-scrape?pages=500&secret=***
+    → Railway spawns async background task
+      → scraper_pf.py runs 500 pages
+        → upserts to Supabase
+          → logs to scrape_runs table
+```
+
+**Scheduled times (UTC):** 00:00, 06:00, 12:00, 18:00  
+**Dubai time:** 04:00, 10:00, 16:00, 22:00
 
 ---
 
@@ -142,57 +200,48 @@ Audit log of every scrape run.
 2. Go to **SQL Editor** → paste and run `backend/schema.sql`
 3. Go to **Settings → API** → copy:
    - Project URL
-   - `anon` public key
    - `service_role` key (keep private — used for writes)
 
-### Step 2 — GitHub Repository
+### Step 2 — Railway (Backend)
 
-```bash
-git init
-git add .
-git commit -m "Initial commit"
-gh repo create dxbdips --public
-git push -u origin main
-```
+1. Go to [railway.app](https://railway.app) → New Project → Deploy from GitHub
+2. Select your repo, set root to `/`
+3. Add environment variables:
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_KEY`
+   - `SCRAPE_SECRET` (any secret string, e.g. `dxbdips-scrape-2026`)
+4. Deploy → copy the Railway URL (e.g. `https://dxbdips-api-production.up.railway.app`)
 
-Add these **repository secrets** (Settings → Secrets → Actions):
-- `SUPABASE_URL` — your project URL
-- `SUPABASE_SERVICE_KEY` — your service_role key (for writes)
+### Step 3 — GitHub Secrets
 
-### Step 3 — Run First Scrape
+Go to **GitHub repo → Settings → Secrets → Actions** and add:
 
-Go to GitHub → Actions → **DXB Dips Scraper** → **Run workflow**
+| Secret | Value |
+|--------|-------|
+| `API_URL` | Your Railway URL |
+| `SCRAPE_SECRET` | Same secret as Railway env var |
 
-This builds the baseline. The second run (6 hours later) will start detecting drops.
+### Step 4 — Run First Scrape
+
+Go to **GitHub → Actions → Scrape Property Finder → Run workflow**
+
+This builds the baseline (~10,000 listings). The second run (6 hours later) will start detecting drops.
 
 To run locally:
 ```bash
 pip install -r requirements.txt
 export SUPABASE_URL=https://xxx.supabase.co
 export SUPABASE_SERVICE_KEY=eyJ...
-python scraper/runner.py --pages 5
+python scraper/runner.py --pages 10
 ```
 
-### Step 4 — Deploy Backend to Render
+### Step 5 — Vercel (Frontend)
 
-1. Go to [render.com](https://render.com) → New Web Service
-2. Connect your GitHub repo
-3. Render will auto-detect `render.yaml`
-4. Add environment variables:
-   - `SUPABASE_URL`
-   - `SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_KEY`
-5. Deploy → copy the URL (e.g. `https://dxbdips-api.onrender.com`)
-
-### Step 5 — Deploy Frontend to Vercel
-
-1. Go to [vercel.com](https://vercel.com) → New Project
-2. Import your GitHub repo
-3. Set **Root Directory** to `frontend`
-4. Add environment variable:
-   - `VITE_API_URL` = your Render URL (e.g. `https://dxbdips-api.onrender.com`)
-5. Deploy → your site is live at `*.vercel.app`
-6. Add custom domain `dxbdips.com` in Vercel settings
+1. Go to [vercel.com](https://vercel.com) → New Project → Import GitHub repo
+2. Set **Root Directory** to `frontend`
+3. Add environment variable:
+   - `VITE_API_URL` = your Railway URL
+4. Deploy → live at `*.vercel.app`
 
 ---
 
@@ -202,8 +251,8 @@ python scraper/runner.py --pages 5
 # Terminal 1 — Backend
 pip install -r requirements.txt
 export SUPABASE_URL=https://xxx.supabase.co
-export SUPABASE_ANON_KEY=eyJ...
-python backend/main.py
+export SUPABASE_SERVICE_KEY=eyJ...
+uvicorn backend.main:app --reload --port 8000
 
 # Terminal 2 — Frontend
 cd frontend
@@ -214,25 +263,19 @@ npm run dev
 
 ---
 
-## Scraper Details
+## Frontend Features
 
-**Source:** Bayut.com via their internal Algolia search API
-- No browser, no Playwright, no Chromium
-- Pure `httpx` JSON calls — ~0.3s per page vs ~4s with a browser
-- Algolia app ID: `5BNAR5PY6Y` (reverse engineered from browser network tab)
-- Filters: Dubai, for-sale, price ≥ 2,000,000 AED
-- Pages: up to 50 pages × 24 results = ~1,200 listings per run
-- Rate limiting: 300–800ms between pages (polite)
-
-**Drop detection logic:**
-```
-if new_price < old_price:
-    drop_abs = old_price - new_price
-    drop_pct = (drop_abs / old_price) * 100
-    → write to price_drops
-```
-
-Note: First scrape establishes baseline only. Drops appear from the second scrape onwards.
+- **Light theme** — Airbnb/Notion-inspired design (Playfair Display + Manrope)
+- **Last scan badge** — shows when data was last updated + countdown to next scan
+- **Property images** — loads from Property Finder CDN with emoji fallback
+- **View on Property Finder** — direct link appears on card hover
+- **Price history modal** — SVG chart built from scratch, no chart library
+- **Area Analytics tab** — breakdown of drops by neighbourhood
+- **Responsive** — works on mobile, tablet, desktop
+- **Skeleton loading** — smooth loading states matching card layout
+- **Time windows** — 24h / 7D / 30D toggle
+- **Currency toggle** — AED / USD (live conversion)
+- **Filters** — by property type, price bracket, drop size
 
 ---
 
@@ -241,32 +284,20 @@ Note: First scrape establishes baseline only. Drops appear from the second scrap
 | Service | Plan | Cost |
 |---------|------|------|
 | Supabase | Free | $0 |
-| Render | Free | $0 (spins down after 15min inactivity) |
+| Railway | Hobby | ~$5/month |
 | Vercel | Free | $0 |
-| GitHub Actions | Free | $0 (2000 min/month) |
-| Domain (dxbdips.com) | — | ~$12/year |
-| **Total** | | **~$12/year** |
-
-> Note: Render free tier spins down after 15 minutes of inactivity. First API request after idle may take ~30 seconds. Upgrade to $7/month to keep it always-on.
-
----
-
-## Adding PropertyFinder Later (v2)
-
-The architecture supports multiple sources. To add PropertyFinder:
-1. Create `scraper/scraper_propertyfinder.py`
-2. Add `source = 'propertyfinder'` to listings
-3. Update `runner.py` to call both scrapers
-4. Frontend already has source filter UI ready
+| GitHub Actions | Free | $0 (2,000 min/month) |
+| **Total** | | **~$5/month** |
 
 ---
 
 ## Design
 
-- **Fonts:** Syne (display) + DM Mono (data/numbers)
-- **Palette:** Deep black (`#080810`) + purple spectrum + neon red for drops
+- **Fonts:** Playfair Display (headings) + Manrope (body/data)
+- **Palette:** Warm off-white (`#f8f7f5`) + crimson red (`#c0392b`) for drops
 - **Key UI decisions:**
-  - Left border color on each card indicates drop severity (red = 10%+, amber = 5%+, purple = <5%)
+  - Left border colour on each card indicates drop severity (red = high, orange = medium, gray = low)
   - SVG price chart built from scratch — no chart library dependency
   - Drop markers on chart show exactly when each price cut happened
-  - Skeleton loading states match card layout exactly
+  - "View on Property Finder ↗" link fades in on card hover only
+  - Last scan dot pulses green when fresh (<30 min), turns gray when stale
