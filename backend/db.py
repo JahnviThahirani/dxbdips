@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from supabase import create_client, Client
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://rtzgkphamillvxkrctdy.supabase.co")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")  # service key for writes
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
 SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ0emdrcGhhbWlsbHZ4a3JjdGR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MjAxOTQsImV4cCI6MjA4ODA5NjE5NH0.rd-iy-Lx0UddIfa6o4xBUzNBelmvmU00mqMGOvRAW8Q")
 
 def get_client(use_service_key: bool = False) -> Client:
@@ -15,23 +15,17 @@ def get_client(use_service_key: bool = False) -> Client:
 
 
 def upsert_listing(listing: dict) -> dict:
-    """
-    Upsert a listing and detect price drops.
-    Returns: { action: 'new' | 'price_drop' | 'unchanged', drop: dict | None }
-    """
     db = get_client(use_service_key=True)
     now = datetime.now(timezone.utc).isoformat()
     lid = listing["id"]
     new_price = listing["price_aed"]
 
-    # Check existing
     existing = db.table("listings").select("*").eq("id", lid).execute()
 
     if not existing.data:
-        # New listing
         db.table("listings").insert({
             "id": lid,
-            "source": listing.get("source", "bayut"),
+            "source": listing.get("source", "propertyfinder"),
             "type": listing.get("type"),
             "beds": listing.get("beds"),
             "baths": listing.get("baths"),
@@ -58,7 +52,6 @@ def upsert_listing(listing: dict) -> dict:
     old = existing.data[0]
     old_price = old.get("last_price")
 
-    # Update listing
     db.table("listings").update({
         "last_seen": now,
         "last_price": new_price,
@@ -80,7 +73,6 @@ def upsert_listing(listing: dict) -> dict:
         "scraped_at": now,
     }).execute()
 
-    # Detect drop
     if old_price and new_price < old_price - 0.001:
         drop_abs = round(old_price - new_price, 6)
         drop_pct = round((drop_abs / old_price) * 100, 2)
@@ -119,16 +111,13 @@ def get_drops(hours: int = 24, limit: int = 100,
         )
     """)
 
-    # Time filter
-    cutoff = datetime.now(timezone.utc)
     from datetime import timedelta
-    cutoff = cutoff - timedelta(hours=hours)
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
     query = query.gte("detected_at", cutoff.isoformat())
 
     if min_pct:
         query = query.gte("drop_pct", min_pct)
 
-    # Sort
     if sort == "pct":
         query = query.order("drop_pct", desc=True)
     elif sort == "recent":
@@ -142,7 +131,6 @@ def get_drops(hours: int = 24, limit: int = 100,
     result = query.execute()
     drops = result.data or []
 
-    # Filter by type in Python (Supabase nested filter is complex)
     if prop_type:
         drops = [d for d in drops if d.get("listings", {}).get("type") == prop_type]
 
@@ -158,8 +146,9 @@ def get_stats(hours: int = 24) -> dict:
         "drop_pct, drop_abs_aed, new_price_aed"
     ).gte("detected_at", cutoff).execute()
 
+    # count="exact" bypasses the default 1000 row limit
     total_listings = db.table("listings").select(
-        "id"
+        "id", count="exact"
     ).eq("is_active", True).execute()
 
     last_run = db.table("scrape_runs").select("*").eq(
@@ -172,7 +161,7 @@ def get_stats(hours: int = 24) -> dict:
     biggest_pct = max((d["drop_pct"] for d in drops_data), default=0)
 
     return {
-        "total_scanned": len(total_listings.data or []),
+        "total_scanned": total_listings.count or 0,  # exact count, no row limit
         "total_drops": len(drops_data),
         "avg_drop_pct": round(avg_pct, 2),
         "biggest_drop_pct": round(biggest_pct, 2),
