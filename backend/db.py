@@ -159,7 +159,7 @@ def get_stats(hours: int = 24) -> dict:
     ).gte("detected_at", cutoff).execute()
 
     total_listings = db.table("listings").select(
-        "id", count="exact"
+        "id"
     ).eq("is_active", True).execute()
 
     last_run = db.table("scrape_runs").select("*").eq(
@@ -172,7 +172,7 @@ def get_stats(hours: int = 24) -> dict:
     biggest_pct = max((d["drop_pct"] for d in drops_data), default=0)
 
     return {
-        "total_scanned": total_listings.count or 0,
+        "total_scanned": len(total_listings.data or []),
         "total_drops": len(drops_data),
         "avg_drop_pct": round(avg_pct, 2),
         "biggest_drop_pct": round(biggest_pct, 2),
