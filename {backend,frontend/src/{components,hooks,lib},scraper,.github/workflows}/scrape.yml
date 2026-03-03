@@ -1,0 +1,21 @@
+name: Scrape Property Finder
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"   # every 6 hours: 00:00, 06:00, 12:00, 18:00 UTC
+  workflow_dispatch:          # manual trigger from GitHub UI
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Trigger scrape
+        run: |
+          echo "Starting scrape at $(date)"
+          curl -s -X POST \
+            "${{ secrets.API_URL }}/api/trigger-scrape?pages=500&secret=${{ secrets.SCRAPE_SECRET }}" \
+            --max-time 2100 \
+            -w "\nHTTP Status: %{http_code}\nTime: %{time_total}s"
+          echo "Done at $(date)"
