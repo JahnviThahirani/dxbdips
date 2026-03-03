@@ -154,3 +154,6 @@ async def scrape(max_pages: int = 50) -> list[dict]:
 
     print(f"[Bayut] Done. {len(listings)} unique listings scraped.")
     return listings
+
+async def run_scrape(max_pages: int = 50) -> list[dict]:
+    return await scrape(max_pages)
