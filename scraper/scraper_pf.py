@@ -51,6 +51,16 @@ def fetch_page(page: int) -> Optional[dict]:
         return None
 
 
+def to_int(val) -> Optional[int]:
+    """Convert '7+' or '7' or 7 to int, None if not parseable."""
+    if val is None:
+        return None
+    try:
+        return int(str(val).replace("+", "").strip())
+    except (ValueError, TypeError):
+        return None
+
+
 def parse_listing(raw: dict) -> Optional[dict]:
     """Convert a PF listing into DXB Dips' unified listing schema."""
     try:
@@ -76,8 +86,8 @@ def parse_listing(raw: dict) -> Optional[dict]:
             "id":          f"pf_{prop['id']}",
             "source":      "propertyfinder",
             "type":        prop.get("property_type"),
-            "beds":        prop.get("bedrooms"),
-            "baths":       prop.get("bathrooms"),
+            "beds":        to_int(prop.get("bedrooms")),
+            "baths":       to_int(prop.get("bathrooms")),
             "size_sqft":   size.get("value") if size.get("unit") == "sqft" else None,
             "title":       prop.get("title"),
             "area":        location.get("path_name"),        # e.g. "Dubai, Jumeirah, La Mer"
