@@ -7,14 +7,15 @@ import sys
 from pathlib import Path
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from concurrent.futures import ThreadPoolExecutor
+import asyncio
 
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 from backend.db import get_drops, get_stats, get_listing_history
-import asyncio
 
-app = FastAPI(title="DXB Dips API", version="1.1.0")
+app = FastAPI(title="DXB Dips API", version="1.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -22,6 +23,9 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+# Thread pool for running blocking scrape/db work off the event loop
+executor = ThreadPoolExecutor(max_workers=2)
 
 AED_TO_USD = 0.2723
 
@@ -82,7 +86,7 @@ async def api_history(listing_id: str):
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "service": "dxbdips-api", "version": "1.1.0", "source": "propertyfinder"}
+    return {"status": "ok", "service": "dxbdips-api", "version": "1.2.0", "source": "propertyfinder"}
 
 
 @app.post("/api/trigger-scrape")
@@ -94,14 +98,23 @@ async def trigger_scrape(
     if secret != expected:
         raise HTTPException(status_code=401, detail="Invalid secret")
 
-    async def run():
+    def run_scrape_sync():
+        """Run the scraper in a thread so it never blocks the event loop."""
+        import asyncio
         from scraper.runner import run_all
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         try:
-            await run_all(max_pages=pages)
+            loop.run_until_complete(run_all(max_pages=pages))
         except Exception as e:
             print(f"Scrape error: {e}")
+        finally:
+            loop.close()
 
-    asyncio.create_task(run())
+    # Submit to thread pool — API stays responsive immediately
+    loop = asyncio.get_event_loop()
+    loop.run_in_executor(executor, run_scrape_sync)
+
     return {"status": "scrape started", "pages": pages, "source": "propertyfinder"}
 
 
