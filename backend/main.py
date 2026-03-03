@@ -12,6 +12,8 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 from backend.db import get_drops, get_stats, get_listing_history
+import asyncio
+import threading
 
 app = FastAPI(title="DXB Dips API", version="1.0.0")
 
@@ -88,3 +90,23 @@ async def health():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
+
+@app.post("/api/trigger-scrape")
+async def trigger_scrape(
+    pages: int = Query(50),
+    secret: str = Query(None),
+):
+    expected = os.environ.get("SCRAPE_SECRET", "dxbdips-scrape-2026")
+    if secret != expected:
+        raise HTTPException(status_code=401, detail="Invalid secret")
+
+    async def run():
+        from scraper.runner import run_all
+        try:
+            await run_all(max_pages=pages)
+        except Exception as e:
+            print(f"Scrape error: {e}")
+
+    asyncio.create_task(run())
+    return {"status": "scrape started", "pages": pages}

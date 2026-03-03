@@ -2,36 +2,22 @@ name: DXB Dips Scraper
 
 on:
   schedule:
-    # Runs every 6 hours
-    - cron: '0 */6 * * *'
+    - cron: "0 */6 * * *"
   workflow_dispatch:
     inputs:
       pages:
-        description: 'Max pages to scrape'
-        required: false
-        default: '50'
+        description: "Max pages to scrape"
+        default: "50"
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Run scraper
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      - name: Trigger scrape on Render
         run: |
-          python scraper/runner.py --pages ${{ github.event.inputs.pages || '50' }}
+          PAGES="${{ github.event.inputs.pages || '50' }}"
+          echo "Triggering scrape for $PAGES pages..."
+          curl -s -X POST \
+            "https://dxbdips-api.onrender.com/api/trigger-scrape?pages=$PAGES&secret=dxbdips-scrape-2026" \
+            -w "\nHTTP Status: %{http_code}\n"
+          echo "Scrape triggered! Check Render logs for progress."
