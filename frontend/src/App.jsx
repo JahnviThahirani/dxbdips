@@ -14,11 +14,10 @@ const TIME_WINDOWS = [
 ];
 
 const PRICE_TIERS = [
-  { id: "all",    label: "All",      min: 0, max: Infinity },
-  { id: "sub1m",  label: "Under 1M", min: 0, max: 1 },
-  { id: "1to3m",  label: "1M – 3M",  min: 1, max: 3 },
-  { id: "3to5m",  label: "3M – 5M",  min: 3, max: 5 },
-  { id: "5mplus", label: "5M+",      min: 5, max: Infinity },
+  { id: "all",     label: "All",       min: 0,  max: Infinity },
+  { id: "5to10m",  label: "5M – 10M",  min: 5,  max: 10 },
+  { id: "10to20m", label: "10M – 20M", min: 10, max: 20 },
+  { id: "20mplus", label: "20M+",      min: 20, max: Infinity },
 ];
 
 const PROP_FILTERS = [

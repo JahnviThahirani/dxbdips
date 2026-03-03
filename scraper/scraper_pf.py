@@ -28,7 +28,7 @@ HEADERS = {
 }
 
 # c=1 for-sale, rp=y price-reduced, ob=mr most-recent
-SEARCH_PARAMS = {"c": "1", "fu": "0", "rp": "y", "ob": "mr"}
+SEARCH_PARAMS = {"c": "1", "fu": "0", "rp": "y", "ob": "mr", "pf": "5000000"}
 
 
 def fetch_page(page: int) -> Optional[dict]:
