@@ -46,9 +46,13 @@ export default function Header({ stats, currency, setCurrency, timeWindow, setTi
         <div className="header-tagline">Dubai Property Price Drop Tracker</div>
       </div>
       <div className="header-right">
-        <div className="last-scan">
-          <span className="last-scan-dot" />
-          Scanning Live
+        <div className="live-badge">
+          <span className="live-badge-icon">
+            <span className="live-ring" />
+            <span className="live-ring live-ring-2" />
+            <span className="live-dot" />
+          </span>
+          <span className="live-text">LIVE</span>
         </div>
         <div className="time-windows">
           {timeWindows.map(tw => (
