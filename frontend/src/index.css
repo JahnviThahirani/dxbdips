@@ -306,25 +306,140 @@ body {
 .area-table-cell.dim { color: var(--gray-400); }
 .value-bar { position: absolute; bottom: 0; left: 0; height: 2px; background: var(--drop-red-border); transition: width 0.8s ease; border-radius: 1px; }
 
-/* Responsive */
-@media (max-width: 960px) {
-  .drop-card { grid-template-columns: 40px 160px 1fr; }
+/* =============================================
+   RESPONSIVE BREAKPOINTS
+   - Desktop:  1200px+
+   - Laptop:   960px - 1199px
+   - Tablet:   640px - 959px
+   - Mobile:   < 640px
+   ============================================= */
+
+/* Laptop (960px - 1199px) */
+@media (max-width: 1199px) {
+  .drop-card { grid-template-columns: 44px 180px 1fr auto; }
+  .drop-card-prices { min-width: 180px; padding: 16px 16px; }
+  .price-drop-amount { font-size: 1.2rem; }
+  .area-table-head, .area-table-row { grid-template-columns: 2fr 60px 100px 160px; }
+  .area-table-head span:nth-child(5),
+  .area-table-row > div:nth-child(5) { display: none; }
+}
+
+/* Tablet (640px - 959px) */
+@media (max-width: 959px) {
+  .app { padding: 0 20px 60px; }
+
+  /* Header */
+  .header { padding: 20px 0 16px; gap: 12px; }
+  .header-tagline { display: none; }
+  .header-right { flex-wrap: wrap; gap: 6px; }
+  .last-scan { font-size: 0.7rem; padding: 4px 10px; }
+
+  /* StatBar - 2 columns */
+  .statbar { grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 16px 0; }
+  .stat-card { padding: 16px; }
+  .stat-card-value { font-size: 1.35rem; }
+
+  /* Tabs */
+  .tab-nav { gap: 2px; }
+  .tab-btn { font-size: 0.78rem; padding: 8px 12px; }
+
+  /* FilterBar */
+  .filterbar { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .filterbar-right { width: 100%; justify-content: space-between; }
+
+  /* Drop Card - hide price column, show inline */
+  .drop-card { grid-template-columns: 40px 160px 1fr; min-height: 110px; }
   .drop-card-prices { display: none; }
-  .statbar { grid-template-columns: repeat(2, 1fr); }
-  .analytics-summary { grid-template-columns: repeat(2, 1fr); }
+  .drop-card-image { width: 160px; height: 110px; }
+
+  /* Show price in info section on tablet */
+  .drop-card-info { padding: 12px 16px; }
+  .drop-title { font-size: 0.9rem; }
+
+  /* Analytics */
+  .analytics-summary { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   .area-table-head, .area-table-row { grid-template-columns: 2fr 60px 100px; }
   .area-table-head span:nth-child(n+4),
   .area-table-row > div:nth-child(n+4) { display: none; }
 }
-@media (max-width: 640px) {
-  .app { padding: 0 16px 60px; }
-  .header { flex-direction: column; align-items: flex-start; gap: 12px; }
+
+/* Mobile (< 640px) */
+@media (max-width: 639px) {
+  .app { padding: 0 14px 60px; }
+
+  /* Header */
+  .header { flex-direction: column; align-items: flex-start; padding: 16px 0 14px; gap: 10px; }
+  .header-left { width: 100%; justify-content: space-between; align-items: center; }
+  .header-logo { font-size: 1.4rem; }
   .header-tagline { display: none; }
-  .drop-card { grid-template-columns: 36px 1fr; }
+  .header-right { width: 100%; justify-content: space-between; gap: 6px; flex-wrap: nowrap; }
+  .last-scan { font-size: 0.68rem; padding: 4px 8px; flex: 1; }
+  .time-windows { gap: 2px; }
+  .tw-btn { font-size: 0.72rem; padding: 5px 8px; }
+  .curr-btn { font-size: 0.72rem; padding: 5px 8px; }
+  .refresh-btn { padding: 5px 8px; }
+
+  /* StatBar - 2 columns, compact */
+  .statbar { grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px 0; }
+  .stat-card { padding: 12px; }
+  .stat-card-value { font-size: 1.15rem; }
+  .stat-card-label { font-size: 0.65rem; }
+  .stat-card-sub { font-size: 0.68rem; }
+
+  /* Tabs - scrollable */
+  .tab-nav { gap: 0; padding-bottom: 0; }
+  .tab-btn { font-size: 0.75rem; padding: 8px 10px; }
+  .tab-count { font-size: 0.65rem; padding: 1px 5px; }
+
+  /* FilterBar */
+  .filterbar { gap: 8px; }
+  .filterbar-left { gap: 5px; }
+  .filter-chip { font-size: 0.72rem; padding: 4px 10px; }
+  .filterbar-right { width: 100%; }
+  .sort-select { flex: 1; font-size: 0.75rem; }
+
+  /* Drop Card - no image on mobile */
+  .drop-card { grid-template-columns: 32px 1fr; min-height: unset; }
   .drop-card-image { display: none; }
-  .statbar { grid-template-columns: 1fr 1fr; gap: 10px; }
-  .analytics-summary { grid-template-columns: 1fr 1fr; }
-  .tab-btn { font-size: 0.78rem; padding: 8px 10px; }
+  .drop-card-prices { display: none; }
+  .drop-card-info { padding: 14px 14px 14px 0; }
+  .drop-title { font-size: 0.88rem; }
+  .drop-location { font-size: 0.73rem; }
+  .drop-tags { gap: 4px; }
+  .tag { font-size: 0.65rem; padding: 2px 6px; }
+
+  /* Show price at bottom of info on mobile */
+  .drop-card-info::after {
+    content: attr(data-price);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--drop-red);
+    display: block;
+    margin-top: 6px;
+  }
+
+  /* Feed */
+  .feed-header { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .feed-header-sub { display: none; }
+
+  /* State */
+  .state-title { font-size: 1.2rem; }
+  .feed-state { padding: 60px 16px; }
+
+  /* Analytics */
+  .analytics-summary { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .summary-value { font-size: 1.2rem; }
+  .area-table-head, .area-table-row { grid-template-columns: 1fr 60px; }
+  .area-table-head span:nth-child(n+3),
+  .area-table-row > div:nth-child(n+3) { display: none; }
+}
+
+/* Extra small (< 380px) */
+@media (max-width: 379px) {
+  .header-right { flex-wrap: wrap; }
+  .last-scan { width: 100%; }
+  .time-windows, .currency-toggle { flex: 1; }
+  .statbar { grid-template-columns: 1fr; }
 }
 .last-scan { display:flex;align-items:center;gap:6px;font-size:0.73rem;color:var(--gray-500);font-weight:500;padding:5px 12px;background:#fff;border:1px solid var(--border);border-radius:20px;white-space:nowrap }
 .last-scan-dot { width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;animation:pulse 2s infinite }
@@ -335,3 +450,29 @@ body {
 .view-pf-link:hover { background:#dce9ff }
 .state-next-scan { margin-top:6px;display:inline-flex;align-items:center;gap:7px;font-size:0.78rem;font-weight:500;color:var(--gray-500);background:#fff;border:1px solid var(--border);padding:8px 16px;border-radius:20px }
 .state-next-dot { width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 2s infinite }
+/* Inline price (shown on tablet/mobile when price column is hidden) */
+.drop-card-inline-price {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.inline-drop-amount {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--drop-red);
+  letter-spacing: -0.02em;
+}
+.inline-price-range {
+  font-size: 0.75rem;
+  color: var(--gray-400);
+}
+
+@media (max-width: 959px) {
+  .drop-card-inline-price { display: flex; }
+}

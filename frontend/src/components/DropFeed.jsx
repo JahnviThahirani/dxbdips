@@ -36,6 +36,15 @@ function DropCard({ drop, currency, rank, onClick }) {
           {isFresh && <span className="tag tag-time fresh">New drop</span>}
           <span className={`tag tag-time ${when.cls}`}>{when.text}</span>
         </div>
+        {/* Inline price for tablet/mobile */}
+        <div className="drop-card-inline-price">
+          <span className="inline-drop-amount">-{formatDrop(drop.drop_abs_aed, drop.drop_abs_usd, currency)}</span>
+          <span className="inline-price-range">
+            <span className="price-old">{formatPrice(drop.old_price_aed, drop.old_price_usd, currency)}</span>
+            <span className="price-arrow"> → </span>
+            <span className="price-new">{formatPrice(drop.new_price_aed, drop.new_price_usd, currency)}</span>
+          </span>
+        </div>
       </div>
 
       <div className="drop-card-prices">
