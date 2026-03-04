@@ -13,7 +13,12 @@ import asyncio
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
-from backend.db import get_drops, get_stats, get_listing_history
+from backend.db import get_drops, get_stats, get_listing_history, get_client
+
+def fetch_listing(listing_id: str) -> dict:
+    db = get_client(use_service_key=True)
+    result = db.table("listings").select("*").eq("id", listing_id).execute()
+    return result.data[0] if result.data else {}
 
 app = FastAPI(title="DXB Dips API", version="1.2.0")
 
@@ -32,6 +37,8 @@ AED_TO_USD = 0.2723
 
 def enrich_drop(d: dict) -> dict:
     listing = d.get("listings") or {}
+    if not listing.get("title"):
+        listing = fetch_listing(d["listing_id"])
     return {
         "id":             d["id"],
         "listing_id":     d["listing_id"],
