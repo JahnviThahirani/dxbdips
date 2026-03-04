@@ -1,25 +1,44 @@
 export default function Header({ stats, currency, setCurrency, timeWindow, setTimeWindow, timeWindows, onRefresh, loading }) {
   const lastScrape = stats?.last_scrape;
+
   const getTimeAgo = (ts) => {
     if (!ts) return null;
     const diff = (Date.now() - new Date(ts).getTime()) / 1000 / 60;
     if (diff < 1) return "just now";
     if (diff < 60) return Math.floor(diff) + "m ago";
-    if (diff < 1440) return Math.floor(diff/60) + "h ago";
-    return Math.floor(diff/1440) + "d ago";
+    if (diff < 1440) return Math.floor(diff / 60) + "h ago";
+    return Math.floor(diff / 1440) + "d ago";
   };
-  const getNextScan = (ts) => {
-    if (!ts) return null;
-    const next = new Date(new Date(ts).getTime() + 6*60*60*1000);
-    const diff = (next - Date.now()) / 1000 / 60;
-    if (diff <= 0) return "soon";
+
+  const getNextScan = () => {
+    const now = new Date();
+    const nowUTC = now.getTime();
+    // Find next 00, 06, 12, 18 UTC boundary
+    const hours = [0, 6, 12, 18];
+    const todayBoundaries = hours.map(h => {
+      const d = new Date(now);
+      d.setUTCHours(h, 0, 0, 0);
+      return d.getTime();
+    });
+    const tomorrowBoundaries = hours.map(h => {
+      const d = new Date(now);
+      d.setUTCDate(d.getUTCDate() + 1);
+      d.setUTCHours(h, 0, 0, 0);
+      return d.getTime();
+    });
+    const allBoundaries = [...todayBoundaries, ...tomorrowBoundaries];
+    const next = allBoundaries.find(t => t > nowUTC + 60000); // at least 1 min away
+    if (!next) return "soon";
+    const diff = (next - nowUTC) / 1000 / 60;
     if (diff < 60) return Math.floor(diff) + "m";
-    return Math.floor(diff/60) + "h " + Math.floor(diff%60) + "m";
+    return Math.floor(diff / 60) + "h " + Math.floor(diff % 60) + "m";
   };
+
   const finishedAt = lastScrape?.finished_at;
   const timeAgo = getTimeAgo(finishedAt);
-  const nextScan = getNextScan(finishedAt);
-  const isStale = finishedAt ? (Date.now()-new Date(finishedAt).getTime())/1000/60 > 30 : true;
+  const nextScan = getNextScan();
+  const isStale = finishedAt ? (Date.now() - new Date(finishedAt).getTime()) / 1000 / 60 > 30 : true;
+
   return (
     <header className="header">
       <div className="header-left">
