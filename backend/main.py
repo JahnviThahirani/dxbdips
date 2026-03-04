@@ -24,7 +24,12 @@ app = FastAPI(title="DXB Dips API", version="1.2.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://dxbdips.com",
+        "https://www.dxbdips.com",
+        "http://localhost:5173",   # local dev
+        "http://localhost:4173",   # local preview
+    ],
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )

@@ -140,7 +140,7 @@ export default function App() {
           </button>
         ))}
         <button
-          className={`tab-btn ${showAreas ? "active" : ""}`}
+          className={`tab-btn area-tab ${showAreas ? "active" : ""}`}
           onClick={() => setShowAreas(true)}
         >
           <span className="tab-label">Area Analytics</span>

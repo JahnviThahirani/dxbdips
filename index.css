@@ -114,7 +114,6 @@ body {
   border-bottom: 1px solid var(--border);
   overflow-x: auto; -webkit-overflow-scrolling: touch;
   scrollbar-width: none; user-select: none; -webkit-user-select: none;
-  touch-action: pan-x; overscroll-behavior-x: contain;
 }
 .tab-nav::-webkit-scrollbar { display: none; }
 .tab-btn {
@@ -389,10 +388,9 @@ body {
   .stat-card-label { font-size: 0.65rem; }
   .stat-card-sub { font-size: 0.68rem; }
 
-  /* Tabs - price tiers in one row, area analytics on second row centered */
-  .tab-nav { flex-wrap: wrap; overflow-x: visible; gap: 0; padding-bottom: 0; touch-action: auto; }
-  .tab-btn { font-size: 0.72rem; padding: 8px 9px; white-space: nowrap; flex-shrink: 0; }
-  .tab-btn.area-tab { width: 100%; justify-content: center; text-align: center; border-top: 1px solid var(--border); margin-top: 2px; padding: 8px 0; }
+  /* Tabs - scrollable, no drag */
+  .tab-nav { gap: 0; padding-bottom: 0; scroll-snap-type: x mandatory; }
+  .tab-btn { font-size: 0.72rem; padding: 8px 8px; white-space: nowrap; scroll-snap-align: start; flex-shrink: 0; }
   .tab-count { font-size: 0.65rem; padding: 1px 5px; }
 
   /* FilterBar */
