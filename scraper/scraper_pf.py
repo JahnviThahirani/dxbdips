@@ -14,6 +14,8 @@ log = logging.getLogger("dxbdips.scraper_pf")
 
 BASE_URL = "https://www.propertyfinder.ae/en/search"
 DELAY_SECONDS = 2.5
+MAX_RETRIES = 3
+RETRY_DELAYS = [5, 15, 30]  # seconds to wait between retries
 
 HEADERS = {
     "User-Agent": (
@@ -33,22 +35,62 @@ SEARCH_PARAMS = {"c": "1", "fu": "0", "rp": "y", "ob": "mr", "pf": "5000000"}
 
 def fetch_page(page: int) -> Optional[dict]:
     params = {**SEARCH_PARAMS, "page": str(page)}
-    try:
-        resp = httpx.get(BASE_URL, params=params, headers=HEADERS, timeout=20, follow_redirects=True)
-        log.info(f"PF page {page}: HTTP {resp.status_code}")
-        if resp.status_code != 200:
-            return None
-        match = re.search(
-            r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>',
-            resp.text, re.DOTALL
-        )
-        if not match:
-            log.warning(f"PF page {page}: __NEXT_DATA__ not found")
-            return None
-        return json.loads(match.group(1))
-    except Exception as e:
-        log.error(f"PF page {page}: fetch failed — {e}")
-        return None
+
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            resp = httpx.get(
+                BASE_URL, params=params, headers=HEADERS,
+                timeout=30,  # increased from 20
+                follow_redirects=True
+            )
+            log.info(f"PF page {page}: HTTP {resp.status_code} (attempt {attempt})")
+
+            if resp.status_code == 429:
+                # Rate limited — wait longer
+                wait = RETRY_DELAYS[attempt - 1] * 2
+                log.warning(f"PF page {page}: rate limited, waiting {wait}s...")
+                time.sleep(wait)
+                continue
+
+            if resp.status_code != 200:
+                log.warning(f"PF page {page}: non-200 status {resp.status_code}")
+                if attempt < MAX_RETRIES:
+                    time.sleep(RETRY_DELAYS[attempt - 1])
+                continue
+
+            match = re.search(
+                r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>',
+                resp.text, re.DOTALL
+            )
+            if not match:
+                log.warning(f"PF page {page}: __NEXT_DATA__ not found (attempt {attempt})")
+                if attempt < MAX_RETRIES:
+                    time.sleep(RETRY_DELAYS[attempt - 1])
+                continue
+
+            return json.loads(match.group(1))
+
+        except httpx.TimeoutException as e:
+            log.warning(f"PF page {page}: timeout on attempt {attempt} — {e}")
+            if attempt < MAX_RETRIES:
+                wait = RETRY_DELAYS[attempt - 1]
+                log.info(f"PF page {page}: retrying in {wait}s...")
+                time.sleep(wait)
+
+        except httpx.NetworkError as e:
+            log.warning(f"PF page {page}: network error on attempt {attempt} — {e}")
+            if attempt < MAX_RETRIES:
+                wait = RETRY_DELAYS[attempt - 1]
+                log.info(f"PF page {page}: retrying in {wait}s...")
+                time.sleep(wait)
+
+        except Exception as e:
+            log.error(f"PF page {page}: unexpected error on attempt {attempt} — {e}")
+            if attempt < MAX_RETRIES:
+                time.sleep(RETRY_DELAYS[attempt - 1])
+
+    log.error(f"PF page {page}: all {MAX_RETRIES} attempts failed, skipping page")
+    return None
 
 
 def to_int(val) -> Optional[int]:
@@ -109,19 +151,31 @@ async def run_scrape(max_pages: int = 10) -> list[dict]:
     """Main entry point — matches interface expected by runner.py."""
     log.info(f"PF scraper starting — {max_pages} pages")
     all_listings = []
+    consecutive_failures = 0
+    MAX_CONSECUTIVE_FAILURES = 5  # stop only if 5 pages in a row all fail
 
     for page in range(1, max_pages + 1):
         log.info(f"Scraping PF page {page}/{max_pages}...")
         data = fetch_page(page)
+
         if not data:
-            log.warning(f"No data on page {page}, stopping.")
-            break
+            consecutive_failures += 1
+            log.warning(f"Page {page} failed ({consecutive_failures} consecutive failures)")
+            if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
+                log.error(f"Stopping after {MAX_CONSECUTIVE_FAILURES} consecutive failures")
+                break
+            # Skip this page but continue
+            time.sleep(RETRY_DELAYS[1])  # extra wait before next page
+            continue
+
+        consecutive_failures = 0  # reset on success
 
         try:
             raw_listings = data["props"]["pageProps"]["searchResult"]["listings"]
         except (KeyError, TypeError):
-            log.warning(f"Could not find listings on page {page}")
-            break
+            log.warning(f"Could not find listings on page {page}, skipping")
+            consecutive_failures += 1
+            continue
 
         log.info(f"Page {page}: {len(raw_listings)} raw listings")
         parsed = [parse_listing(r) for r in raw_listings]

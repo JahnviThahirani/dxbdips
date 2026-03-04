@@ -32,9 +32,9 @@ export default function StatBar({ stats, drops, currency }) {
     },
     {
       icon: "🔍",
-      label: "Properties Tracked",
-      value: stats.total_scanned ? stats.total_scanned.toLocaleString() : "--",
-      sub: "Active listings on Property Finder",
+      label: "Listings Monitored",
+      value: stats.unique_listings ? stats.unique_listings.toLocaleString() : (stats.total_scanned ? stats.total_scanned.toLocaleString() : "--"),
+      sub: "Unique properties tracked",
       color: "var(--drop-red)",
       glow: "",
     },

@@ -5,6 +5,17 @@ function fmt(val, currency) {
   return currency === "AED" ? `AED ${val.toFixed(2)}M` : `$${(val * AED_TO_USD).toFixed(2)}M`;
 }
 
+// area string is like "Dubai, Palm Jumeirah, Serenia Living"
+// city = first part, locality = second part, sub = rest
+function parseArea(areaStr) {
+  if (!areaStr) return { city: "Unknown", locality: "", sub: "" };
+  const parts = areaStr.split(",").map(s => s.trim());
+  const city = parts[0] || "Unknown";
+  const locality = parts[1] || "";
+  const sub = parts.slice(2).join(", ");
+  return { city, locality, sub };
+}
+
 export default function AreaAnalytics({ drops, currency, loading }) {
   if (loading) return (
     <div className="area-analytics-wrap">
@@ -40,11 +51,15 @@ export default function AreaAnalytics({ drops, currency, loading }) {
       count: a.drops.length,
       avgDropPct: a.totalDropPct / a.drops.length,
       avgNewPrice: a.drops.reduce((s, d) => s + (d.new_price_aed || 0), 0) / a.drops.length,
+      parsed: parseArea(a.area),
     }))
     .sort((a, b) => b.totalDropValue - a.totalDropValue)
     .slice(0, 12);
 
   const maxDropValue = Math.max(...areas.map(a => a.totalDropValue));
+
+  // Most active = locality (2nd part), not city
+  const mostActiveLocality = areas[0]?.parsed.locality || areas[0]?.parsed.city || "--";
 
   const typeMap = {};
   drops.forEach(d => { const t = d.type || "Other"; typeMap[t] = (typeMap[t] || 0) + 1; });
@@ -60,22 +75,19 @@ export default function AreaAnalytics({ drops, currency, loading }) {
             {fmt(drops.reduce((s, d) => s + (d.drop_abs_aed || 0), 0), currency)}
           </div>
         </div>
-        <div className="summary-divider" />
         <div className="summary-item">
           <div className="summary-label">Areas with Drops</div>
           <div className="summary-value">{areas.length}</div>
         </div>
-        <div className="summary-divider" />
         <div className="summary-item">
           <div className="summary-label">Avg Drop</div>
           <div className="summary-value">
-            {(drops.reduce((s, d) => s + (d.drop_pct || 0), 0) / drops.length).toFixed(1)}%
+            -{(drops.reduce((s, d) => s + (d.drop_pct || 0), 0) / drops.length).toFixed(1)}%
           </div>
         </div>
-        <div className="summary-divider" />
         <div className="summary-item">
           <div className="summary-label">Most Active Area</div>
-          <div className="summary-value sm">{areas[0]?.area?.split(",")[0] || "--"}</div>
+          <div className="summary-value sm">{mostActiveLocality}</div>
         </div>
       </div>
 
@@ -105,24 +117,30 @@ export default function AreaAnalytics({ drops, currency, loading }) {
             <span>Total Value Dropped</span>
             <span>Avg New Price</span>
           </div>
-          {areas.map((a, i) => (
-            <div key={a.area} className="area-table-row">
-              <div className="area-table-name">
-                <span className="area-rank">#{i + 1}</span>
-                <div>
-                  <div className="area-name-main">{a.area.split(",")[0]}</div>
-                  <div className="area-name-sub">{a.area.split(",").slice(1).join(",").trim()}</div>
+          {areas.map((a, i) => {
+            const { city, locality, sub } = a.parsed;
+            // Heading = locality (e.g. Palm Jumeirah), subheading = city (e.g. Dubai)
+            const heading = locality || city;
+            const subheading = locality ? `${city}${sub ? `, ${sub}` : ""}` : sub;
+            return (
+              <div key={a.area} className="area-table-row">
+                <div className="area-table-name">
+                  <span className="area-rank">#{i + 1}</span>
+                  <div>
+                    <div className="area-name-main">{heading}</div>
+                    {subheading && <div className="area-name-sub">{subheading}</div>}
+                  </div>
                 </div>
+                <div className="area-table-cell">{a.count}</div>
+                <div className="area-table-cell accent">-{a.avgDropPct.toFixed(1)}%</div>
+                <div className="area-table-cell gold" style={{ position: "relative" }}>
+                  {fmt(a.totalDropValue, currency)}
+                  <div className="value-bar" style={{ width: `${(a.totalDropValue / maxDropValue) * 100}%` }} />
+                </div>
+                <div className="area-table-cell dim">{fmt(a.avgNewPrice, currency)}</div>
               </div>
-              <div className="area-table-cell">{a.count}</div>
-              <div className="area-table-cell accent">-{a.avgDropPct.toFixed(1)}%</div>
-              <div className="area-table-cell gold" style={{ position: "relative" }}>
-                {fmt(a.totalDropValue, currency)}
-                <div className="value-bar" style={{ width: `${(a.totalDropValue / maxDropValue) * 100}%` }} />
-              </div>
-              <div className="area-table-cell dim">{fmt(a.avgNewPrice, currency)}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

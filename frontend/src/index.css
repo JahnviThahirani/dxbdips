@@ -46,15 +46,14 @@ body {
   padding: 28px 0 24px; border-bottom: 1px solid var(--border);
   gap: 16px; flex-wrap: wrap;
 }
-.header-left { display: flex; align-items: center; gap: 16px; }
+.header-left { display: flex; flex-direction: column; gap: 3px; }
 .header-logo {
   font-family: var(--font-display); font-size: 1.75rem; font-weight: 600;
   color: var(--gray-900); letter-spacing: -0.02em; line-height: 1;
 }
 .header-logo span { color: var(--drop-red); }
 .header-tagline {
-  font-size: 0.8rem; color: var(--gray-400); font-weight: 400;
-  border-left: 1px solid var(--border-strong); padding-left: 16px;
+  font-size: 0.75rem; color: var(--gray-400); font-weight: 400;
 }
 .header-right { display: flex; align-items: center; gap: 8px; }
 .time-windows { display: flex; gap: 4px; }
@@ -112,8 +111,11 @@ body {
 /* Tabs */
 .tab-nav {
   display: flex; gap: 4px; padding: 16px 0 0;
-  border-bottom: 1px solid var(--border); overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; user-select: none; -webkit-user-select: none;
 }
+.tab-nav::-webkit-scrollbar { display: none; }
 .tab-btn {
   display: flex; align-items: center; gap: 7px;
   padding: 10px 16px; background: transparent; border: none;
@@ -330,7 +332,7 @@ body {
 
   /* Header */
   .header { padding: 20px 0 16px; gap: 12px; }
-  .header-tagline { display: none; }
+  .header-tagline { display: block; }
   .header-right { flex-wrap: wrap; gap: 6px; }
   .last-scan { font-size: 0.7rem; padding: 4px 10px; }
 
@@ -369,9 +371,9 @@ body {
 
   /* Header */
   .header { flex-direction: column; align-items: flex-start; padding: 16px 0 14px; gap: 10px; }
-  .header-left { width: 100%; justify-content: space-between; align-items: center; }
+  .header-left { width: 100%; }
   .header-logo { font-size: 1.4rem; }
-  .header-tagline { display: none; }
+  .header-tagline { display: block; font-size: 0.68rem; }
   .header-right { width: 100%; justify-content: space-between; gap: 6px; flex-wrap: nowrap; }
   .last-scan { font-size: 0.68rem; padding: 4px 8px; flex: 1; }
   .time-windows { gap: 2px; }
@@ -386,9 +388,9 @@ body {
   .stat-card-label { font-size: 0.65rem; }
   .stat-card-sub { font-size: 0.68rem; }
 
-  /* Tabs - scrollable */
-  .tab-nav { gap: 0; padding-bottom: 0; }
-  .tab-btn { font-size: 0.75rem; padding: 8px 10px; }
+  /* Tabs - scrollable, no drag */
+  .tab-nav { gap: 0; padding-bottom: 0; scroll-snap-type: x mandatory; }
+  .tab-btn { font-size: 0.72rem; padding: 8px 8px; white-space: nowrap; scroll-snap-align: start; flex-shrink: 0; }
   .tab-count { font-size: 0.65rem; padding: 1px 5px; }
 
   /* FilterBar */
