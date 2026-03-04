@@ -101,7 +101,7 @@ def upsert_listing(listing: dict) -> dict:
 def get_drops(hours: int = 24, limit: int = 100,
               prop_type: str = None, sort: str = "abs",
               min_pct: float = None) -> list:
-    db = get_client()
+    db = get_client(use_service_key=True)
     query = db.table("price_drops").select("""
         id, listing_id, old_price_aed, new_price_aed,
         drop_abs_aed, drop_pct, detected_at,
@@ -138,7 +138,7 @@ def get_drops(hours: int = 24, limit: int = 100,
 
 
 def get_stats(hours: int = 24) -> dict:
-    db = get_client()
+    db = get_client(use_service_key=True)
     from datetime import timedelta
     cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
 
@@ -171,7 +171,7 @@ def get_stats(hours: int = 24) -> dict:
 
 
 def get_listing_history(listing_id: str) -> dict:
-    db = get_client()
+    db = get_client(use_service_key=True)
     listing = db.table("listings").select("*").eq("id", listing_id).execute()
     history = db.table("price_history").select("*").eq(
         "listing_id", listing_id
