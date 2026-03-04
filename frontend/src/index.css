@@ -375,10 +375,12 @@ body {
   .header-left { width: 100%; }
   .header-logo { font-size: 1.4rem; }
   .header-tagline { display: block; font-size: 0.68rem; }
-  .header-right { width: 100%; justify-content: space-between; gap: 6px; flex-wrap: nowrap; }
-  .last-scan { font-size: 0.68rem; padding: 4px 8px; flex: 1; }
+  /* Header right: last-scan full width top row, controls on second row */
+  .header-right { width: 100%; flex-wrap: wrap; gap: 6px; }
+  .last-scan { width: 100%; font-size: 0.68rem; padding: 4px 8px; flex: unset; }
   .time-windows { gap: 2px; }
   .tw-btn { font-size: 0.72rem; padding: 5px 8px; }
+  .currency-toggle { margin-left: auto; }
   .curr-btn { font-size: 0.72rem; padding: 5px 8px; }
   .refresh-btn { padding: 5px 8px; }
 

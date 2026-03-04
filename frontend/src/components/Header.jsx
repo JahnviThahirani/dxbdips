@@ -1,4 +1,4 @@
-export default function Header({ stats, currency, setCurrency, timeWindow, setTimeWindow, timeWindows, onRefresh, loading }) {
+export default function Header({ stats, currency, setCurrency, timeWindow, setTimeWindow, timeWindows, onRefresh, loading, onLogoClick }) {
   const lastScrape = stats?.last_scrape;
 
   const getTimeAgo = (ts) => {
@@ -13,6 +13,7 @@ export default function Header({ stats, currency, setCurrency, timeWindow, setTi
   const getNextScan = () => {
     const now = new Date();
     const nowUTC = now.getTime();
+    // Find next 00, 06, 12, 18 UTC boundary
     const hours = [0, 6, 12, 18];
     const todayBoundaries = hours.map(h => {
       const d = new Date(now);
@@ -26,7 +27,7 @@ export default function Header({ stats, currency, setCurrency, timeWindow, setTi
       return d.getTime();
     });
     const allBoundaries = [...todayBoundaries, ...tomorrowBoundaries];
-    const next = allBoundaries.find(t => t > nowUTC + 60000);
+    const next = allBoundaries.find(t => t > nowUTC + 60000); // at least 1 min away
     if (!next) return "soon";
     const diff = (next - nowUTC) / 1000 / 60;
     if (diff < 60) return Math.floor(diff) + "m";
@@ -41,17 +42,14 @@ export default function Header({ stats, currency, setCurrency, timeWindow, setTi
   return (
     <header className="header">
       <div className="header-left">
-        <div className="header-logo">DXB<span>Dips</span></div>
+        <div className="header-logo" onClick={onLogoClick} style={{ cursor: "pointer" }}>DXB<span>Dips</span></div>
         <div className="header-tagline">Dubai Property Price Drop Tracker</div>
       </div>
       <div className="header-right">
-        {timeAgo && (
-          <div className="last-scan">
-            <span className={`last-scan-dot${isStale ? ' stale' : ''}`} />
-            Last scan {timeAgo}
-            {nextScan && <span style={{ opacity: 0.55, marginLeft: 4 }}>· next in {nextScan}</span>}
-          </div>
-        )}
+        <div className="last-scan">
+          <span className="last-scan-dot" />
+          Scanning Live
+        </div>
         <div className="time-windows">
           {timeWindows.map(tw => (
             <button key={tw.label}

@@ -78,6 +78,12 @@ export default function App() {
     return () => clearInterval(id);
   }, [fetchData]);
 
+  const resetToHome = () => {
+    setShowAreas(false);
+    setActiveTier("all");
+    setPropFilter("all");
+  };
+
   const openHistory = async (listing) => {
     setSelectedListing(listing);
     setHistoryLoading(true);
@@ -125,6 +131,7 @@ export default function App() {
         timeWindows={TIME_WINDOWS}
         onRefresh={fetchData}
         loading={loading}
+        onLogoClick={resetToHome}
       />
       <StatBar stats={stats} drops={drops} currency={currency} />
 
