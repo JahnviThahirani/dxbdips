@@ -92,7 +92,7 @@ body {
 .stat-card {
   background: var(--white); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition: box-shadow 0.2s, transform 0.2s; min-width: 0; overflow: hidden;
 }
 .stat-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
 .stat-card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
@@ -106,7 +106,7 @@ body {
   color: var(--drop-red); letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 4px;
 }
 .stat-card-value.neutral { color: var(--gray-900); }
-.stat-card-sub { font-size: 0.75rem; color: var(--gray-400); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat-card-sub { font-size: 0.75rem; color: var(--gray-400); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 
 /* Tabs */
 .tab-nav {
