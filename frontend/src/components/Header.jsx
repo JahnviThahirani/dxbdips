@@ -52,7 +52,7 @@ export default function Header({ stats, currency, setCurrency, timeWindow, setTi
             <span className="live-ring live-ring-2" />
             <span className="live-dot" />
           </span>
-          <span className="live-text">LIVE</span>
+          <span className="live-text">Scanning Live</span>
         </div>
         <div className="time-windows">
           {timeWindows.map(tw => (
