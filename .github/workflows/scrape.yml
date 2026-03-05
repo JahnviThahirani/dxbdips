@@ -8,14 +8,14 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 360      # 6 hours max — covers full sale + rental run
 
     steps:
       - name: Trigger scrape
         run: |
           echo "Starting scrape at $(date)"
           curl -s -X POST \
-            "${{ secrets.API_URL }}/api/trigger-scrape?pages=500&secret=${{ secrets.SCRAPE_SECRET }}" \
-            --max-time 2100 \
+            "${{ secrets.API_URL }}/api/trigger-scrape?pages=300&rental_pages=200&secret=${{ secrets.SCRAPE_SECRET }}" \
+            --max-time 21600 \
             -w "\nHTTP Status: %{http_code}\nTime: %{time_total}s"
           echo "Done at $(date)"

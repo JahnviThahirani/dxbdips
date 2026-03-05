@@ -13,11 +13,19 @@ const TIME_WINDOWS = [
   { label: "30D", hours: 720 },
 ];
 
-const PRICE_TIERS = [
+const SALE_PRICE_TIERS = [
   { id: "all",     label: "All",       min: 0,  max: Infinity },
-  { id: "5to10m",  label: "5M – 10M",  min: 5,  max: 10 },
+  { id: "4to10m",  label: "4M – 10M",  min: 4,  max: 10 },
   { id: "10to20m", label: "10M – 20M", min: 10, max: 20 },
   { id: "20mplus", label: "20M+",      min: 20, max: Infinity },
+];
+
+// Rental tiers in raw AED/yr (not millions)
+const RENTAL_PRICE_TIERS = [
+  { id: "all",       label: "All",              min: 0,      max: Infinity },
+  { id: "250to500k", label: "250K – 500K /yr",  min: 250000, max: 500000 },
+  { id: "500to1m",   label: "500K – 1M /yr",    min: 500000, max: 1000000 },
+  { id: "1mplus",    label: "1M+ /yr",          min: 1000000, max: Infinity },
 ];
 
 const PROP_FILTERS = [
@@ -26,8 +34,8 @@ const PROP_FILTERS = [
   { id: "villa",     label: "Villas" },
   { id: "penthouse", label: "Penthouses" },
   { id: "townhouse", label: "Townhouses" },
-  { id: "5plus",     label: "5%+ Drop" },
   { id: "10plus",    label: "10%+ Drop" },
+  { id: "today",     label: "New Today" },
 ];
 
 const SORTS = [
@@ -38,12 +46,13 @@ const SORTS = [
 ];
 
 export default function App() {
+  const [mode, setMode] = useState("sale"); // "sale" | "rental"
   const [drops, setDrops] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currency, setCurrency] = useState("AED");
-  const [timeWindow, setTimeWindow] = useState(TIME_WINDOWS[0]);
+  const [timeWindow, setTimeWindow] = useState(TIME_WINDOWS[2]);
   const [activeTier, setActiveTier] = useState("all");
   const [propFilter, setPropFilter] = useState("all");
   const [sort, setSort] = useState("abs");
@@ -52,13 +61,18 @@ export default function App() {
   const [historyData, setHistoryData] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
 
-  const fetchData = useCallback(async () => {
+  const isRental = mode === "rental";
+  const PRICE_TIERS = isRental ? RENTAL_PRICE_TIERS : SALE_PRICE_TIERS;
+
+  const fetchData = useCallback(async (signal) => {
     try {
       setLoading(true);
       setError(null);
+      const dropsEndpoint = isRental ? "rental-drops" : "drops";
+      const statsEndpoint = isRental ? "rental-stats" : "stats";
       const [dropsRes, statsRes] = await Promise.all([
-        fetch(`${API}/api/drops?hours=${timeWindow.hours}&limit=200&sort=${sort}`),
-        fetch(`${API}/api/stats?hours=${timeWindow.hours}`),
+        fetch(`${API}/api/${dropsEndpoint}?hours=${timeWindow.hours}&limit=200&sort=${sort}`, { signal }),
+        fetch(`${API}/api/${statsEndpoint}?hours=${timeWindow.hours}`, { signal }),
       ]);
       if (!dropsRes.ok || !statsRes.ok) throw new Error("API error");
       const dropsData = await dropsRes.json();
@@ -66,15 +80,23 @@ export default function App() {
       setDrops(dropsData.drops || []);
       setStats(statsData);
     } catch (e) {
+      if (e.name === "AbortError") return; // stale fetch cancelled, ignore
       setError(e.message);
     } finally {
       setLoading(false);
     }
-  }, [timeWindow.hours, sort]);
+  }, [timeWindow.hours, sort, isRental]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => {
-    const id = setInterval(fetchData, 5 * 60 * 1000);
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort();
+  }, [fetchData]);
+  useEffect(() => {
+    const id = setInterval(() => {
+      const controller = new AbortController();
+      fetchData(controller.signal);
+    }, 5 * 60 * 1000);
     return () => clearInterval(id);
   }, [fetchData]);
 
@@ -84,11 +106,22 @@ export default function App() {
     setPropFilter("all");
   };
 
+  const handleModeChange = (newMode) => {
+    setMode(newMode);
+    setActiveTier("all");
+    setPropFilter("all");
+    setShowAreas(false);
+    setDrops([]);
+    setError(null);
+    setStats({});
+  };
+
   const openHistory = async (listing) => {
     setSelectedListing(listing);
     setHistoryLoading(true);
     try {
-      const res = await fetch(`${API}/api/history/${listing.listing_id}`);
+      const endpoint = isRental ? "rental-history" : "history";
+      const res = await fetch(`${API}/api/${endpoint}/${listing.listing_id}`);
       const data = await res.json();
       setHistoryData(data);
     } catch (e) {
@@ -99,21 +132,28 @@ export default function App() {
   };
 
   const tier = PRICE_TIERS.find(t => t.id === activeTier);
+
   const tierFiltered = drops.filter(d => {
-    const p = d.new_price_aed || 0;
+    const p = isRental
+      ? (d.new_price_aed || 0)           // raw AED/yr for rentals
+      : ((d.new_price_aed || 0));         // millions for sales
     return p >= tier.min && p < tier.max;
   });
 
   const filteredDrops = tierFiltered.filter(d => {
     if (propFilter === "all") return true;
     if (propFilter === "10plus") return d.drop_pct >= 10;
-    if (propFilter === "5plus") return d.drop_pct >= 5;
+    if (propFilter === "today") {
+      const detected = new Date(d.detected_at);
+      const now = new Date();
+      return (now - detected) <= 24 * 60 * 60 * 1000;
+    }
     return d.type?.toLowerCase() === propFilter;
   });
 
   const tierCounts = PRICE_TIERS.reduce((acc, t) => {
     acc[t.id] = drops.filter(d => {
-      const p = d.new_price_aed || 0;
+      const p = isRental ? (d.new_price_aed || 0) : (d.new_price_aed || 0);
       return p >= t.min && p < t.max;
     }).length;
     return acc;
@@ -133,7 +173,29 @@ export default function App() {
         loading={loading}
         onLogoClick={resetToHome}
       />
-      <StatBar stats={stats} drops={drops} currency={currency} />
+
+      {/* Buy / Rent Toggle */}
+      <div className="mode-toggle-bar">
+        <div className="mode-toggle">
+          <button
+            className={`mode-btn ${mode === "sale" ? "active" : ""}`}
+            onClick={() => handleModeChange("sale")}
+          >
+            🏠 Buy
+          </button>
+          <button
+            className={`mode-btn ${mode === "rental" ? "active" : ""}`}
+            onClick={() => handleModeChange("rental")}
+          >
+            🔑 Rent
+          </button>
+        </div>
+        <span className="mode-label">
+          {isRental ? "Luxury rentals · 250K+ AED/yr · price drop tracker" : "Luxury sales · 4M+ AED · price drop tracker"}
+        </span>
+      </div>
+
+      <StatBar stats={stats} drops={drops} currency={currency} isRental={isRental} />
 
       <nav className="tab-nav">
         {PRICE_TIERS.map(t => (
@@ -173,11 +235,19 @@ export default function App() {
               </select>
             </div>
           </div>
-          <DropFeed drops={filteredDrops} currency={currency} loading={loading} error={error} onCardClick={openHistory} />
+          <DropFeed
+            drops={filteredDrops}
+            currency={currency}
+            loading={loading}
+            error={error}
+            onCardClick={openHistory}
+            isRental={isRental}
+            totalRentalDropsEver={isRental ? (stats.total_drops ?? -1) : null}
+          />
         </>
       )}
 
-      {showAreas && <AreaAnalytics drops={drops} currency={currency} loading={loading} />}
+      {showAreas && <AreaAnalytics drops={drops} currency={currency} loading={loading} isRental={isRental} />}
 
       {selectedListing && (
         <HistoryModal
@@ -185,6 +255,7 @@ export default function App() {
           historyData={historyData}
           loading={historyLoading}
           currency={currency}
+          isRental={isRental}
           onClose={() => { setSelectedListing(null); setHistoryData(null); }}
         />
       )}

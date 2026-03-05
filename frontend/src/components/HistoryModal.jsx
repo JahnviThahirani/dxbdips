@@ -1,7 +1,18 @@
 import { useEffect } from "react";
 import { formatPrice, formatDrop } from "../lib/utils";
 
-function PriceChart({ history, drops, currency }) {
+const AED_TO_USD = 0.2723;
+
+// Rental prices are raw AED/yr (not millions)
+function formatRentalAmt(aed, currency) {
+  if (!aed) return "--";
+  const val = currency === "AED" ? aed : Math.round(aed * AED_TO_USD);
+  const symbol = currency === "AED" ? "AED " : "$";
+  if (val >= 1_000_000) return `${symbol}${(val / 1_000_000).toFixed(2)}M`;
+  return `${symbol}${(val / 1000).toFixed(0)}K`;
+}
+
+function PriceChart({ history, drops, currency, isRental }) {
   if (!history || history.length < 2) {
     return (
       <div style={{
@@ -16,8 +27,14 @@ function PriceChart({ history, drops, currency }) {
     );
   }
 
-  const AED_TO_USD = 0.2723;
-  const prices = history.map(h => currency === "AED" ? h.price_aed : h.price_aed * AED_TO_USD);
+  // Rental history uses price_aed_yearly, sale uses price_aed
+  const rawPrices = history.map(h => isRental ? h.price_aed_yearly : h.price_aed);
+  const prices = rawPrices.map(p =>
+    isRental
+      ? (currency === "AED" ? p / 1000 : (p * AED_TO_USD) / 1000)   // show in K
+      : (currency === "AED" ? p : p * AED_TO_USD)                     // show in M
+  );
+  const unit = isRental ? "K/yr" : "M";
   const dates = history.map(h => new Date(h.scraped_at));
 
   const minP = Math.min(...prices) * 0.97;
@@ -44,7 +61,7 @@ function PriceChart({ history, drops, currency }) {
 
   const yLabels = [minP, (minP + maxP) / 2, maxP].map(p => ({
     y: toY(p),
-    label: currency === "AED" ? `${p.toFixed(1)}M` : `$${p.toFixed(2)}M`,
+    label: `${currency === "AED" ? "" : "$"}${p.toFixed(1)}${unit}`,
   }));
 
   const xIdxs = prices.length <= 3
@@ -65,33 +82,22 @@ function PriceChart({ history, drops, currency }) {
             <stop offset="100%" stopColor="#c0392b" stopOpacity="0" />
           </linearGradient>
         </defs>
-
-        {/* Grid lines */}
         {yLabels.map((l, i) => (
           <line key={i} x1={PAD.left} y1={l.y} x2={W - PAD.right} y2={l.y}
             stroke="#e8e4df" strokeWidth="1" strokeDasharray="3 4" />
         ))}
-
-        {/* Area fill */}
         <path d={areaD} fill="url(#areaFill)" />
-
-        {/* Price line */}
         <path d={pathD} fill="none" stroke="#c0392b" strokeWidth="2"
           strokeLinecap="round" strokeLinejoin="round" />
-
-        {/* Data points */}
         {prices.map((p, i) => (
           <circle key={i} cx={toX(i)} cy={toY(p)} r="3"
             fill="#fff" stroke="#c0392b" strokeWidth="1.5" />
         ))}
-
-        {/* Drop markers */}
         {dropMarkers.map((m, i) => (
           <g key={i}>
             <circle cx={m.x} cy={m.y} r="7"
               fill="rgba(192,57,43,0.1)" stroke="#c0392b" strokeWidth="1.5" />
-            <circle cx={m.x} cy={m.y} r="3"
-              fill="#c0392b" />
+            <circle cx={m.x} cy={m.y} r="3" fill="#c0392b" />
             <text x={m.x} y={m.y - 13} textAnchor="middle"
               fill="#c0392b" fontSize="9" fontWeight="600"
               fontFamily="'DM Mono', monospace">
@@ -99,14 +105,10 @@ function PriceChart({ history, drops, currency }) {
             </text>
           </g>
         ))}
-
-        {/* Y labels */}
         {yLabels.map((l, i) => (
           <text key={i} x={PAD.left - 8} y={l.y + 4} textAnchor="end"
             fill="#aaa" fontSize="9.5" fontFamily="'DM Mono', monospace">{l.label}</text>
         ))}
-
-        {/* X labels */}
         {xLabels.map((l, i) => (
           <text key={i} x={l.x} y={H - 8} textAnchor="middle"
             fill="#aaa" fontSize="9.5" fontFamily="'DM Mono', monospace">{l.label}</text>
@@ -116,7 +118,7 @@ function PriceChart({ history, drops, currency }) {
   );
 }
 
-export default function HistoryModal({ listing, historyData, loading, currency, onClose }) {
+export default function HistoryModal({ listing, historyData, loading, currency, isRental, onClose }) {
   useEffect(() => {
     const handler = (e) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", handler);
@@ -127,7 +129,11 @@ export default function HistoryModal({ listing, historyData, loading, currency, 
     };
   }, [onClose]);
 
-  const AED_TO_USD = 0.2723;
+  const fmtPrice = (aed, usd) =>
+    isRental ? formatRentalAmt(aed, currency) : formatPrice(aed, usd, currency);
+
+  const fmtDrop = (aed, usd) =>
+    isRental ? formatRentalAmt(aed, currency) : formatDrop(aed, usd, currency);
 
   return (
     <div
@@ -136,12 +142,12 @@ export default function HistoryModal({ listing, historyData, loading, currency, 
         position: "fixed", inset: 0, zIndex: 1000,
         background: "rgba(0,0,0,0.35)", backdropFilter: "blur(4px)",
         display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "20px",
+        padding: "16px",
       }}
     >
       <div style={{
         background: "#fff", borderRadius: "16px",
-        width: "100%", maxWidth: "640px", maxHeight: "90vh",
+        width: "100%", maxWidth: "640px", maxHeight: "92vh",
         overflowY: "auto", boxShadow: "0 24px 80px rgba(0,0,0,0.18)",
         position: "relative",
       }}>
@@ -194,14 +200,15 @@ export default function HistoryModal({ listing, historyData, loading, currency, 
                 fontSize: "11px", fontWeight: "600", letterSpacing: "0.08em",
                 textTransform: "uppercase", color: "#888",
                 background: "#f5f2ee", borderRadius: "6px", padding: "3px 8px"
-              }}>{listing.size_sqft?.toLocaleString()} sqft</span>
+              }}>{Number(listing.size_sqft)?.toLocaleString()} sqft</span>
             )}
           </div>
 
           {/* Title */}
           <h2 style={{
             fontSize: "18px", fontWeight: "700", color: "#1a1a1a",
-            lineHeight: "1.3", margin: "0 0 6px 0"
+            lineHeight: "1.3", margin: "0 0 6px 0",
+            paddingRight: "40px", // avoid overlap with close btn
           }}>
             {listing.title || "Luxury Property"}
           </h2>
@@ -221,10 +228,11 @@ export default function HistoryModal({ listing, historyData, loading, currency, 
             <div>
               <div style={{ fontSize: "11px", color: "#c0392b", fontWeight: "600",
                 letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "4px" }}>
-                Price Drop
+                {isRental ? "Rent Drop" : "Price Drop"}
               </div>
               <div style={{ fontSize: "26px", fontWeight: "800", color: "#c0392b", lineHeight: 1 }}>
-                -{formatDrop(listing.drop_abs_aed, listing.drop_abs_usd, currency)}
+                -{fmtDrop(listing.drop_abs_aed, listing.drop_abs_usd)}
+                {isRental && <span style={{ fontSize: "14px", fontWeight: "600" }}>/yr</span>}
               </div>
               <div style={{ fontSize: "13px", color: "#c0392b", opacity: 0.8, marginTop: "2px" }}>
                 -{listing.drop_pct}% reduction
@@ -233,11 +241,13 @@ export default function HistoryModal({ listing, historyData, loading, currency, 
             <div style={{ textAlign: "right" }}>
               <div style={{ fontSize: "11px", color: "#999", marginBottom: "4px" }}>Was</div>
               <div style={{ fontSize: "15px", color: "#999", textDecoration: "line-through" }}>
-                {formatPrice(listing.old_price_aed, listing.old_price_usd, currency)}
+                {fmtPrice(listing.old_price_aed, listing.old_price_usd)}
+                {isRental && <span style={{ fontSize: "11px" }}>/yr</span>}
               </div>
               <div style={{ fontSize: "11px", color: "#999", margin: "4px 0 4px" }}>Now</div>
               <div style={{ fontSize: "20px", fontWeight: "700", color: "#1a1a1a" }}>
-                {formatPrice(listing.new_price_aed, listing.new_price_usd, currency)}
+                {fmtPrice(listing.new_price_aed, listing.new_price_usd)}
+                {isRental && <span style={{ fontSize: "13px", fontWeight: "600", color: "#888" }}>/yr</span>}
               </div>
             </div>
           </div>
@@ -268,7 +278,9 @@ export default function HistoryModal({ listing, historyData, loading, currency, 
             <h3 style={{
               fontSize: "12px", fontWeight: "700", letterSpacing: "0.1em",
               textTransform: "uppercase", color: "#aaa", margin: "0 0 16px 0"
-            }}>Price History</h3>
+            }}>
+              {isRental ? "Rent History" : "Price History"}
+            </h3>
 
             {loading ? (
               <div style={{
@@ -281,6 +293,7 @@ export default function HistoryModal({ listing, historyData, loading, currency, 
                   history={historyData.price_history}
                   drops={historyData.drops}
                   currency={currency}
+                  isRental={isRental}
                 />
 
                 {/* Drop log */}
@@ -304,7 +317,11 @@ export default function HistoryModal({ listing, historyData, loading, currency, 
                             })}
                           </span>
                           <span style={{ fontSize: "13px", fontWeight: "700", color: "#c0392b" }}>
-                            -{formatDrop(d.drop_abs_aed, d.drop_abs_aed * AED_TO_USD * 1_000_000, currency)}
+                            -{isRental
+                              ? formatRentalAmt(d.drop_abs_aed, currency)
+                              : formatDrop(d.drop_abs_aed, d.drop_abs_aed * AED_TO_USD * 1_000_000, currency)
+                            }
+                            {isRental && <span style={{ fontSize: "11px" }}>/yr</span>}
                           </span>
                           <span style={{
                             fontSize: "11px", fontWeight: "600", color: "#c0392b",
@@ -312,9 +329,10 @@ export default function HistoryModal({ listing, historyData, loading, currency, 
                             padding: "2px 6px"
                           }}>-{d.drop_pct}%</span>
                           <span style={{ fontSize: "12px", color: "#999" }}>
-                            {formatPrice(d.old_price_aed, d.old_price_aed * AED_TO_USD, currency)}
-                            {" → "}
-                            {formatPrice(d.new_price_aed, d.new_price_aed * AED_TO_USD, currency)}
+                            {isRental
+                              ? `${formatRentalAmt(d.old_price_aed, currency)} → ${formatRentalAmt(d.new_price_aed, currency)}/yr`
+                              : `${formatPrice(d.old_price_aed, d.old_price_aed * AED_TO_USD, currency)} → ${formatPrice(d.new_price_aed, d.new_price_aed * AED_TO_USD, currency)}`
+                            }
                           </span>
                         </div>
                       ))}

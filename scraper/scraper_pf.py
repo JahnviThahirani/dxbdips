@@ -29,17 +29,22 @@ HEADERS = {
     "Connection": "keep-alive",
 }
 
-# c=1 for-sale, rp=y price-reduced, ob=mr most-recent
-SEARCH_PARAMS = {"c": "1", "fu": "0", "rp": "y", "ob": "mr", "pf": "5000000"}
+# c=1 for-sale, rp=y price-reduced, ob=mr most-recent, pf=4000000 min price 4M AED
+SEARCH_PARAMS = {"c": "1", "fu": "0", "rp": "y", "ob": "mr", "pf": "4000000"}
+
+# c=2 for-rent, rp=y price-reduced, ob=mr most-recent, pf=250000 min rent 250K AED/yr
+RENTAL_SEARCH_PARAMS = {"c": "2", "fu": "0", "rp": "y", "ob": "mr", "pf": "250000"}
 
 
-def fetch_page(page: int) -> Optional[dict]:
-    params = {**SEARCH_PARAMS, "page": str(page)}
+def fetch_page(page: int, params: dict = None) -> Optional[dict]:
+    if params is None:
+        params = SEARCH_PARAMS
+    req_params = {**params, "page": str(page)}
 
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             resp = httpx.get(
-                BASE_URL, params=params, headers=HEADERS,
+                BASE_URL, params=req_params, headers=HEADERS,
                 timeout=30,  # increased from 20
                 follow_redirects=True
             )
@@ -103,7 +108,7 @@ def to_int(val) -> Optional[int]:
         return None
 
 
-def parse_listing(raw: dict) -> Optional[dict]:
+def parse_listing(raw: dict, listing_type: str = "sale") -> Optional[dict]:
     """Convert a PF listing into DXB Dips' unified listing schema."""
     try:
         prop = raw.get("property", {})
@@ -121,42 +126,50 @@ def parse_listing(raw: dict) -> Optional[dict]:
         images = prop.get("images", [])
         image_url = images[0].get("medium") if images else None
 
-        # Convert price to millions to match existing schema
-        price_aed_millions = round(price_value / 1_000_000, 4)
+        if listing_type == "rental":
+            # Rental prices stored as raw AED per year (not millions)
+            price_aed = round(float(price_value), 2)
+            price_field = "price_aed_yearly"
+        else:
+            # Sale prices stored in millions to match existing schema
+            price_aed = round(price_value / 1_000_000, 4)
+            price_field = "price_aed"
 
-        return {
+        result = {
             "id":          f"pf_{prop['id']}",
             "source":      "propertyfinder",
+            "listing_type": listing_type,
             "type":        prop.get("property_type"),
             "beds":        to_int(prop.get("bedrooms")),
             "baths":       to_int(prop.get("bathrooms")),
             "size_sqft":   size.get("value") if size.get("unit") == "sqft" else None,
             "title":       prop.get("title"),
-            "area":        location.get("path_name"),        # e.g. "Dubai, Jumeirah, La Mer"
-            "building":    location.get("name"),             # e.g. "La Mer South Island"
+            "area":        location.get("path_name"),
+            "building":    location.get("name"),
             "url":         prop.get("share_url"),
             "image_url":   image_url,
             "listed_date": prop.get("listed_date"),
-            "price_aed":   price_aed_millions,               # in millions, matches DB schema
             "reference":   prop.get("reference"),
             "lat":         coords.get("lat"),
             "lon":         coords.get("lon"),
+            price_field:   price_aed,
         }
+        return result
     except Exception as e:
         log.warning(f"parse_listing failed: {e}")
         return None
 
 
 async def run_scrape(max_pages: int = 10) -> list[dict]:
-    """Main entry point — matches interface expected by runner.py."""
-    log.info(f"PF scraper starting — {max_pages} pages")
+    """Scrape for-sale listings. Main entry point for runner.py."""
+    log.info(f"PF sale scraper starting — {max_pages} pages")
     all_listings = []
     consecutive_failures = 0
-    MAX_CONSECUTIVE_FAILURES = 5  # stop only if 5 pages in a row all fail
+    MAX_CONSECUTIVE_FAILURES = 5
 
     for page in range(1, max_pages + 1):
-        log.info(f"Scraping PF page {page}/{max_pages}...")
-        data = fetch_page(page)
+        log.info(f"Scraping PF sale page {page}/{max_pages}...")
+        data = fetch_page(page, params=SEARCH_PARAMS)
 
         if not data:
             consecutive_failures += 1
@@ -164,11 +177,10 @@ async def run_scrape(max_pages: int = 10) -> list[dict]:
             if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
                 log.error(f"Stopping after {MAX_CONSECUTIVE_FAILURES} consecutive failures")
                 break
-            # Skip this page but continue
-            time.sleep(RETRY_DELAYS[1])  # extra wait before next page
+            time.sleep(RETRY_DELAYS[1])
             continue
 
-        consecutive_failures = 0  # reset on success
+        consecutive_failures = 0
 
         try:
             raw_listings = data["props"]["pageProps"]["searchResult"]["listings"]
@@ -178,7 +190,7 @@ async def run_scrape(max_pages: int = 10) -> list[dict]:
             continue
 
         log.info(f"Page {page}: {len(raw_listings)} raw listings")
-        parsed = [parse_listing(r) for r in raw_listings]
+        parsed = [parse_listing(r, listing_type="sale") for r in raw_listings]
         parsed = [p for p in parsed if p is not None]
         all_listings.extend(parsed)
         log.info(f"Page {page}: {len(parsed)} parsed (total: {len(all_listings)})")
@@ -186,5 +198,47 @@ async def run_scrape(max_pages: int = 10) -> list[dict]:
         if page < max_pages:
             time.sleep(DELAY_SECONDS)
 
-    log.info(f"PF scrape complete — {len(all_listings)} listings total")
+    log.info(f"PF sale scrape complete — {len(all_listings)} listings total")
+    return all_listings
+
+
+async def run_rental_scrape(max_pages: int = 10) -> list[dict]:
+    """Scrape for-rent listings (250K+ AED/yr)."""
+    log.info(f"PF rental scraper starting — {max_pages} pages")
+    all_listings = []
+    consecutive_failures = 0
+    MAX_CONSECUTIVE_FAILURES = 5
+
+    for page in range(1, max_pages + 1):
+        log.info(f"Scraping PF rental page {page}/{max_pages}...")
+        data = fetch_page(page, params=RENTAL_SEARCH_PARAMS)
+
+        if not data:
+            consecutive_failures += 1
+            log.warning(f"Rental page {page} failed ({consecutive_failures} consecutive failures)")
+            if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
+                log.error(f"Stopping after {MAX_CONSECUTIVE_FAILURES} consecutive failures")
+                break
+            time.sleep(RETRY_DELAYS[1])
+            continue
+
+        consecutive_failures = 0
+
+        try:
+            raw_listings = data["props"]["pageProps"]["searchResult"]["listings"]
+        except (KeyError, TypeError):
+            log.warning(f"Could not find rental listings on page {page}, skipping")
+            consecutive_failures += 1
+            continue
+
+        log.info(f"Rental page {page}: {len(raw_listings)} raw listings")
+        parsed = [parse_listing(r, listing_type="rental") for r in raw_listings]
+        parsed = [p for p in parsed if p is not None]
+        all_listings.extend(parsed)
+        log.info(f"Rental page {page}: {len(parsed)} parsed (total: {len(all_listings)})")
+
+        if page < max_pages:
+            time.sleep(DELAY_SECONDS)
+
+    log.info(f"PF rental scrape complete — {len(all_listings)} listings total")
     return all_listings

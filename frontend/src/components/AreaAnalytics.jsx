@@ -1,22 +1,25 @@
 const AED_TO_USD = 0.2723;
 
-function fmt(val, currency) {
+function fmt(val, currency, isRental) {
   if (!val) return "--";
+  if (isRental) {
+    // val is raw AED/yr
+    const display = currency === "AED" ? val : val * AED_TO_USD;
+    const symbol = currency === "AED" ? "AED " : "$";
+    if (display >= 1_000_000) return `${symbol}${(display / 1_000_000).toFixed(2)}M/yr`;
+    return `${symbol}${(display / 1000).toFixed(0)}K/yr`;
+  }
+  // val is millions AED
   return currency === "AED" ? `AED ${val.toFixed(2)}M` : `$${(val * AED_TO_USD).toFixed(2)}M`;
 }
 
-// area string is like "Dubai, Palm Jumeirah, Serenia Living"
-// city = first part, locality = second part, sub = rest
 function parseArea(areaStr) {
   if (!areaStr) return { city: "Unknown", locality: "", sub: "" };
   const parts = areaStr.split(",").map(s => s.trim());
-  const city = parts[0] || "Unknown";
-  const locality = parts[1] || "";
-  const sub = parts.slice(2).join(", ");
-  return { city, locality, sub };
+  return { city: parts[0] || "Unknown", locality: parts[1] || "", sub: parts.slice(2).join(", ") };
 }
 
-export default function AreaAnalytics({ drops, currency, loading }) {
+export default function AreaAnalytics({ drops, currency, loading, isRental }) {
   if (loading) return (
     <div className="area-analytics-wrap">
       {[...Array(4)].map((_, i) => (
@@ -57,22 +60,22 @@ export default function AreaAnalytics({ drops, currency, loading }) {
     .slice(0, 12);
 
   const maxDropValue = Math.max(...areas.map(a => a.totalDropValue));
-
-  // Most active = locality (2nd part), not city
   const mostActiveLocality = areas[0]?.parsed.locality || areas[0]?.parsed.city || "--";
 
   const typeMap = {};
   drops.forEach(d => { const t = d.type || "Other"; typeMap[t] = (typeMap[t] || 0) + 1; });
   const types = Object.entries(typeMap).sort((a, b) => b[1] - a[1]);
 
+  const totalDropValue = drops.reduce((s, d) => s + (d.drop_abs_aed || 0), 0);
+
   return (
     <div className="area-analytics-wrap">
 
       <div className="analytics-summary">
         <div className="summary-item">
-          <div className="summary-label">Total Drop Value</div>
+          <div className="summary-label">{isRental ? "Total Rent Dropped" : "Total Drop Value"}</div>
           <div className="summary-value gold">
-            {fmt(drops.reduce((s, d) => s + (d.drop_abs_aed || 0), 0), currency)}
+            {fmt(totalDropValue, currency, isRental)}
           </div>
         </div>
         <div className="summary-item">
@@ -114,12 +117,11 @@ export default function AreaAnalytics({ drops, currency, loading }) {
             <span>Area</span>
             <span>Drops</span>
             <span>Avg Drop %</span>
-            <span>Total Value Dropped</span>
-            <span>Avg New Price</span>
+            <span>{isRental ? "Total Rent Dropped" : "Total Value Dropped"}</span>
+            <span>{isRental ? "Avg Current Rent" : "Avg New Price"}</span>
           </div>
           {areas.map((a, i) => {
             const { city, locality, sub } = a.parsed;
-            // Heading = locality (e.g. Palm Jumeirah), subheading = city (e.g. Dubai)
             const heading = locality || city;
             const subheading = locality ? `${city}${sub ? `, ${sub}` : ""}` : sub;
             return (
@@ -134,10 +136,10 @@ export default function AreaAnalytics({ drops, currency, loading }) {
                 <div className="area-table-cell">{a.count}</div>
                 <div className="area-table-cell accent">-{a.avgDropPct.toFixed(1)}%</div>
                 <div className="area-table-cell gold" style={{ position: "relative" }}>
-                  {fmt(a.totalDropValue, currency)}
+                  {fmt(a.totalDropValue, currency, isRental)}
                   <div className="value-bar" style={{ width: `${(a.totalDropValue / maxDropValue) * 100}%` }} />
                 </div>
-                <div className="area-table-cell dim">{fmt(a.avgNewPrice, currency)}</div>
+                <div className="area-table-cell dim">{fmt(a.avgNewPrice, currency, isRental)}</div>
               </div>
             );
           })}

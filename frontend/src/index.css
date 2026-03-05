@@ -521,3 +521,265 @@ body {
 @media (max-width: 959px) {
   .drop-card-inline-price { display: flex; }
 }
+
+/* ─────────────────────────────────────────────
+   BUY / RENT MODE TOGGLE
+───────────────────────────────────────────── */
+.mode-toggle-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 24px 10px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.mode-toggle {
+  display: flex;
+  background: var(--gray-100);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.mode-btn {
+  padding: 8px 22px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--gray-500);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.mode-btn.active {
+  background: var(--gray-900);
+  color: var(--white);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+
+.mode-btn:hover:not(.active) {
+  color: var(--gray-700);
+  background: var(--gray-200, #e5e5e5);
+}
+
+.mode-label {
+  font-size: 0.78rem;
+  color: var(--gray-400);
+  letter-spacing: 0.02em;
+}
+
+/* ─────────────────────────────────────────────
+   RESPONSIVE ADJUSTMENTS
+───────────────────────────────────────────── */
+
+/* Tablets */
+@media (max-width: 900px) {
+  .mode-toggle-bar {
+    padding: 12px 16px 8px;
+    gap: 10px;
+  }
+
+  .mode-btn {
+    padding: 7px 16px;
+    font-size: 0.84rem;
+  }
+
+  .mode-label {
+    font-size: 0.72rem;
+  }
+
+  .header {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .header-right {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .tab-nav {
+    padding: 0 12px;
+    gap: 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .tab-nav::-webkit-scrollbar { display: none; }
+
+  .tab-btn {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .statbar {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 12px 16px;
+    gap: 10px;
+  }
+
+  .filterbar {
+    padding: 8px 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .filterbar-left {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .drop-feed {
+    padding: 0 12px 24px;
+    gap: 10px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .mode-toggle-bar {
+    padding: 10px 12px 8px;
+  }
+
+  .mode-btn {
+    padding: 6px 14px;
+    font-size: 0.82rem;
+  }
+
+  .mode-label {
+    display: none;
+  }
+
+  .header {
+    padding: 10px 12px;
+  }
+
+  .header-logo {
+    font-size: 1.3rem;
+  }
+
+  .header-tagline {
+    display: none;
+  }
+
+  .header-right {
+    gap: 6px;
+  }
+
+  .time-windows {
+    gap: 2px;
+  }
+
+  .tw-btn {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+  }
+
+  .curr-btn {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+  }
+
+  .statbar {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .stat-card {
+    padding: 10px 12px;
+  }
+
+  .stat-card-value {
+    font-size: 1.1rem;
+  }
+
+  .tab-nav {
+    padding: 0 10px;
+    gap: 4px;
+  }
+
+  .tab-btn {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+
+  .tab-count {
+    font-size: 0.65rem;
+    padding: 1px 5px;
+  }
+
+  .filterbar {
+    padding: 6px 10px;
+  }
+
+  .filter-chip {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+  }
+
+  .sort-select {
+    font-size: 0.75rem;
+    padding: 4px 6px;
+  }
+
+  .drop-feed {
+    padding: 0 10px 20px;
+  }
+
+  .drop-card {
+    grid-template-columns: 32px 80px 1fr;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .drop-card-prices {
+    display: none;
+  }
+
+  .drop-card-inline-price {
+    display: flex !important;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 6px;
+  }
+
+  .drop-title {
+    font-size: 0.82rem;
+  }
+
+  .drop-location {
+    font-size: 0.72rem;
+  }
+
+  .drop-badge {
+    font-size: 0.7rem;
+    padding: 2px 5px;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 380px) {
+  .statbar {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .stat-card-value {
+    font-size: 0.95rem;
+  }
+
+  .drop-card {
+    grid-template-columns: 28px 70px 1fr;
+    gap: 6px;
+    padding: 8px;
+  }
+}
