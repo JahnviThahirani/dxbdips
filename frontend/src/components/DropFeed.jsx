@@ -69,6 +69,21 @@ function DropCard({ drop, currency, rank, onClick, isRental }) {
         </div>
       </div>
 
+      {/* Mobile right-side price */}
+      <div className="drop-card-mobile-price">
+        {isRental ? (
+          <>
+            <span className="mobile-drop">-{formatRentalPrice(drop.drop_abs_aed, drop.drop_abs_usd, currency)}/yr</span>
+            <span className="mobile-new-price">{formatRentalPrice(drop.new_price_aed, drop.new_price_usd, currency)}/yr</span>
+          </>
+        ) : (
+          <>
+            <span className="mobile-drop">-{formatDrop(drop.drop_abs_aed, drop.drop_abs_usd, currency)}</span>
+            <span className="mobile-new-price">{formatPrice(drop.new_price_aed, drop.new_price_usd, currency)}</span>
+          </>
+        )}
+      </div>
+
       <div className="drop-card-prices">
         {isRental ? (
           <>
