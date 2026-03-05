@@ -230,7 +230,7 @@ export default function HistoryModal({ listing, historyData, loading, currency, 
                 letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "4px" }}>
                 {isRental ? "Rent Drop" : "Price Drop"}
               </div>
-              <div style={{ fontSize: "26px", fontWeight: "800", color: "#c0392b", lineHeight: 1 }}>
+              <div style={{ fontSize: "26px", fontWeight: "800", color: "#c0392b", lineHeight: 1, fontFamily: "inherit" }}>
                 -{fmtDrop(listing.drop_abs_aed, listing.drop_abs_usd)}
                 {isRental && <span style={{ fontSize: "14px", fontWeight: "600" }}>/yr</span>}
               </div>
@@ -245,7 +245,7 @@ export default function HistoryModal({ listing, historyData, loading, currency, 
                 {isRental && <span style={{ fontSize: "11px" }}>/yr</span>}
               </div>
               <div style={{ fontSize: "11px", color: "#999", margin: "4px 0 4px" }}>Now</div>
-              <div style={{ fontSize: "20px", fontWeight: "700", color: "#1a1a1a" }}>
+              <div style={{ fontSize: "20px", fontWeight: "700", color: "#1a1a1a", fontFamily: "inherit" }}>
                 {fmtPrice(listing.new_price_aed, listing.new_price_usd)}
                 {isRental && <span style={{ fontSize: "13px", fontWeight: "600", color: "#888" }}>/yr</span>}
               </div>

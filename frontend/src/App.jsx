@@ -198,22 +198,34 @@ export default function App() {
       <StatBar stats={stats} drops={drops} currency={currency} isRental={isRental} />
 
       <nav className="tab-nav">
-        {PRICE_TIERS.map(t => (
+        <div className="tab-nav-row1">
+          {PRICE_TIERS.map(t => (
+            <button
+              key={t.id}
+              className={`tab-btn ${activeTier === t.id && !showAreas ? "active" : ""}`}
+              onClick={() => { setActiveTier(t.id); setShowAreas(false); }}
+            >
+              <span className="tab-label">{t.label}</span>
+              {tierCounts[t.id] > 0 && <span className="tab-count">{tierCounts[t.id]}</span>}
+            </button>
+          ))}
+          {/* Area Analytics visible inline on desktop */}
           <button
-            key={t.id}
-            className={`tab-btn ${activeTier === t.id && !showAreas ? "active" : ""}`}
-            onClick={() => { setActiveTier(t.id); setShowAreas(false); }}
+            className={`tab-btn area-tab desktop-area-tab ${showAreas ? "active" : ""}`}
+            onClick={() => setShowAreas(true)}
           >
-            <span className="tab-label">{t.label}</span>
-            {tierCounts[t.id] > 0 && <span className="tab-count">{tierCounts[t.id]}</span>}
+            <span className="tab-label">Area Analytics</span>
           </button>
-        ))}
-        <button
-          className={`tab-btn area-tab ${showAreas ? "active" : ""}`}
-          onClick={() => setShowAreas(true)}
-        >
-          <span className="tab-label">Area Analytics</span>
-        </button>
+        </div>
+        {/* Area Analytics on its own centered row on mobile */}
+        <div className="tab-nav-row2">
+          <button
+            className={`tab-btn area-tab ${showAreas ? "active" : ""}`}
+            onClick={() => setShowAreas(true)}
+          >
+            <span className="tab-label">Area Analytics</span>
+          </button>
+        </div>
       </nav>
 
       {!showAreas && (

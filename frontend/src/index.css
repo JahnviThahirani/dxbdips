@@ -1,3 +1,10 @@
+
+/* Tab nav row structure */
+.tab-nav-row1 { display: flex; flex-wrap: nowrap; gap: 2px; }
+.tab-nav-row2 { display: none; } /* hidden on desktop */
+.desktop-area-tab { display: inline-flex; } /* visible on desktop */
+
+.header-left .live-badge { display: none; }
 html, body { overflow-x: hidden; max-width: 100%; }
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Manrope:wght@300;400;500;600&display=swap');
 
@@ -651,60 +658,77 @@ body {
 
 /* Mobile */
 @media (max-width: 600px) {
-  .mode-toggle-bar {
-    padding: 10px 12px 8px;
-  }
-  .mode-btn {
-    padding: 6px 14px;
-    font-size: 0.82rem;
-  }
+  .mode-toggle-bar { padding: 10px 12px 8px; }
+  .mode-btn { padding: 6px 14px; font-size: 0.82rem; }
   .mode-label { display: none; }
 
-  /* Header: two tight rows, nothing overflows */
+  /* ── HEADER: row1 = logo + scanning live, row2 = controls centered ── */
   .header {
     padding: 10px 12px 8px;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-  .header-left { width: 100%; }
-  .header-logo { font-size: 1.25rem; }
-  .header-tagline { display: none; }
-  .header-right {
-    width: 100%;
-    flex-wrap: nowrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 4px;
-    overflow: hidden;
-  }
-  .live-text { font-size: 0.68rem; }
-  .tw-btn { padding: 4px 7px; font-size: 0.72rem; }
-  .curr-btn { padding: 4px 7px; font-size: 0.72rem; }
-  .refresh-btn { padding: 4px 8px; flex-shrink: 0; }
-
-  /* Stats */
-  .statbar {
-    grid-template-columns: repeat(2, 1fr);
-    padding: 10px 12px;
+    flex-direction: column;
+    align-items: flex-start;
     gap: 8px;
   }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+  }
+  .header-logo { font-size: 1.25rem; }
+  .header-tagline { display: none; }
+  /* Move live badge into header-left via CSS order trick — handled in Header.jsx restructure */
+  .header-right {
+    width: 100%;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    overflow: hidden;
+  }
+  /* Hide live badge from header-right on mobile (it moves to row 1) */
+  .header-right .live-badge { display: none; }
+  /* Show standalone live badge in header-left */
+  .header-left .live-badge { display: flex; }
+  .live-text { font-size: 0.68rem; }
+  .tw-btn { padding: 4px 8px; font-size: 0.73rem; }
+  .curr-btn { padding: 4px 8px; font-size: 0.73rem; }
+  .refresh-btn { padding: 4px 8px; flex-shrink: 0; }
+
+  /* ── STATS ── */
+  .statbar { grid-template-columns: repeat(2, 1fr); padding: 10px 12px; gap: 8px; }
   .stat-card { padding: 10px 12px; }
   .stat-card-value { font-size: 1.1rem; }
 
-  /* Tabs: horizontally scrollable, contained, no page overflow */
+  /* ── TABS: no wrap, no overflow, no drag ── */
   .tab-nav {
-    padding: 0 10px;
-    gap: 2px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0 12px;
+    gap: 0;
+    overflow: visible;
+  }
+  /* Row 1: price tier tabs scrollable */
+  .tab-nav-row1 {
+    display: flex;
     flex-wrap: nowrap;
     overflow-x: auto;
-    overflow-y: visible;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    /* Critical: prevent horizontal page drag */
-    max-width: 100%;
-    box-sizing: border-box;
+    gap: 2px;
+    padding-bottom: 0;
   }
-  .tab-nav::-webkit-scrollbar { display: none; }
+  .tab-nav-row1::-webkit-scrollbar { display: none; }
+  /* Row 2: Area Analytics centered */
+  .tab-nav-row2 {
+    display: flex;
+    justify-content: center;
+    padding: 6px 0 2px;
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+  }
   .tab-btn {
     padding: 6px 9px;
     font-size: 0.72rem;
@@ -712,40 +736,42 @@ body {
     flex-shrink: 0;
   }
   .tab-count { font-size: 0.63rem; padding: 1px 4px; }
+  .tab-nav-row1 { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .tab-nav-row1::-webkit-scrollbar { display: none; }
+  .tab-nav-row2 { display: flex; justify-content: center; padding: 6px 0 2px; border-top: 1px solid var(--border); margin-top: 4px; }
+  .desktop-area-tab { display: none !important; }
+  .area-tab { font-size: 0.75rem; padding: 6px 24px; }
 
-  /* Filterbar: contained scroll, no page overflow */
+  /* ── FILTERBAR: 2 rows, second row centered ── */
   .filterbar {
-    padding: 6px 10px;
+    display: flex;
+    flex-direction: column;
+    padding: 6px 12px;
     gap: 6px;
-    flex-wrap: nowrap;
-    overflow: hidden;
-    max-width: 100%;
-    box-sizing: border-box;
+    overflow: visible;
   }
   .filterbar-left {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    gap: 4px;
-    flex-shrink: 1;
-    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 5px;
   }
-  .filterbar-left::-webkit-scrollbar { display: none; }
   .filterbar-right {
-    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
   }
   .filter-chip {
-    padding: 4px 9px;
-    font-size: 0.72rem;
+    padding: 4px 10px;
+    font-size: 0.73rem;
     white-space: nowrap;
-    flex-shrink: 0;
   }
-  .sort-select { font-size: 0.72rem; padding: 4px 6px; }
+  .sort-select { font-size: 0.73rem; padding: 4px 6px; }
 
   .drop-feed { padding: 0 10px 20px; }
 
-  /* Card: rank | info | price-right */
+  /* ── CARDS: rank | info | price (right) ── */
   .drop-card {
     grid-template-columns: 28px 1fr auto;
     gap: 8px;
@@ -756,7 +782,6 @@ body {
   .drop-card-prices { display: none; }
   .drop-card-inline-price { display: none !important; }
   .drop-card-info { padding: 0; }
-
   .drop-card-mobile-price {
     display: flex;
     flex-direction: column;
@@ -764,18 +789,23 @@ body {
     gap: 2px;
     min-width: 68px;
   }
+  /* ── FIX 4: keep desktop font on mobile for prices ── */
   .drop-card-mobile-price .mobile-drop {
-    font-size: 0.85rem;
+    font-size: 0.88rem;
     font-weight: 700;
     color: var(--drop-red);
     white-space: nowrap;
+    font-family: inherit;
+    font-variant-numeric: normal;
+    -webkit-font-smoothing: antialiased;
   }
   .drop-card-mobile-price .mobile-new-price {
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     color: var(--gray-500);
     white-space: nowrap;
+    font-family: inherit;
+    font-variant-numeric: normal;
   }
-
   .drop-title { font-size: 0.82rem; }
   .drop-location { font-size: 0.72rem; }
   .drop-badge { font-size: 0.7rem; padding: 2px 5px; }
