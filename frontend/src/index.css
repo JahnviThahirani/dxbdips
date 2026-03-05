@@ -735,34 +735,11 @@ body {
     padding: 0 10px 20px;
   }
 
-  .drop-card {
-    grid-template-columns: 32px 80px 1fr;
-    gap: 8px;
-    padding: 10px;
-  }
-
-  .drop-card-prices {
-    display: none;
-  }
-
   .drop-card-inline-price {
     display: flex !important;
     flex-direction: column;
     gap: 2px;
     margin-top: 6px;
-  }
-
-  .drop-title {
-    font-size: 0.82rem;
-  }
-
-  .drop-location {
-    font-size: 0.72rem;
-  }
-
-  .drop-badge {
-    font-size: 0.7rem;
-    padding: 2px 5px;
   }
 }
 
@@ -777,9 +754,5 @@ body {
     font-size: 0.95rem;
   }
 
-  .drop-card {
-    grid-template-columns: 28px 70px 1fr;
-    gap: 6px;
-    padding: 8px;
-  }
+
 }
