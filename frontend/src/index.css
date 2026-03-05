@@ -1,3 +1,4 @@
+html, body { overflow-x: hidden; max-width: 100%; }
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Manrope:wght@300;400;500;600&display=swap');
 
 :root {
@@ -653,74 +654,33 @@ body {
   .mode-toggle-bar {
     padding: 10px 12px 8px;
   }
-
   .mode-btn {
     padding: 6px 14px;
     font-size: 0.82rem;
   }
+  .mode-label { display: none; }
 
-  .mode-label {
-    display: none;
-  }
-
-  /* Header: row 1 = logo+tagline, row 2 = all controls tightly packed */
+  /* Header: two tight rows, nothing overflows */
   .header {
     padding: 10px 12px 8px;
     gap: 6px;
+    flex-wrap: wrap;
   }
-
-  .header-left {
-    width: 100%;
-  }
-
-  .header-logo {
-    font-size: 1.25rem;
-  }
-
-  .header-tagline {
-    display: none;
-  }
-
+  .header-left { width: 100%; }
+  .header-logo { font-size: 1.25rem; }
+  .header-tagline { display: none; }
   .header-right {
     width: 100%;
-    display: flex;
     flex-wrap: nowrap;
     align-items: center;
-    gap: 5px;
     justify-content: space-between;
+    gap: 4px;
+    overflow: hidden;
   }
-
-  .live-badge {
-    flex-shrink: 0;
-  }
-
-  .live-text {
-    font-size: 0.68rem;
-  }
-
-  .time-windows {
-    gap: 2px;
-    flex-shrink: 0;
-  }
-
-  .tw-btn {
-    padding: 4px 7px;
-    font-size: 0.72rem;
-  }
-
-  .currency-toggle {
-    flex-shrink: 0;
-  }
-
-  .curr-btn {
-    padding: 4px 7px;
-    font-size: 0.72rem;
-  }
-
-  .refresh-btn {
-    padding: 4px 7px;
-    flex-shrink: 0;
-  }
+  .live-text { font-size: 0.68rem; }
+  .tw-btn { padding: 4px 7px; font-size: 0.72rem; }
+  .curr-btn { padding: 4px 7px; font-size: 0.72rem; }
+  .refresh-btn { padding: 4px 8px; flex-shrink: 0; }
 
   /* Stats */
   .statbar {
@@ -728,122 +688,102 @@ body {
     padding: 10px 12px;
     gap: 8px;
   }
+  .stat-card { padding: 10px 12px; }
+  .stat-card-value { font-size: 1.1rem; }
 
-  .stat-card {
-    padding: 10px 12px;
-  }
-
-  .stat-card-value {
-    font-size: 1.1rem;
-  }
-
-  /* Tabs: single scrollable line, no wrap */
+  /* Tabs: horizontally scrollable, contained, no page overflow */
   .tab-nav {
     padding: 0 10px;
     gap: 2px;
     flex-wrap: nowrap;
     overflow-x: auto;
+    overflow-y: visible;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    touch-action: pan-x;
+    /* Critical: prevent horizontal page drag */
+    max-width: 100%;
+    box-sizing: border-box;
   }
-
   .tab-nav::-webkit-scrollbar { display: none; }
-
   .tab-btn {
     padding: 6px 9px;
     font-size: 0.72rem;
     white-space: nowrap;
     flex-shrink: 0;
   }
+  .tab-count { font-size: 0.63rem; padding: 1px 4px; }
 
-  .tab-count {
-    font-size: 0.63rem;
-    padding: 1px 4px;
-  }
-
-  /* Filter chips: single scrollable line */
+  /* Filterbar: contained scroll, no page overflow */
   .filterbar {
     padding: 6px 10px;
     gap: 6px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    max-width: 100%;
+    box-sizing: border-box;
   }
-
   .filterbar-left {
     flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    touch-action: pan-x;
     gap: 4px;
+    flex-shrink: 1;
+    min-width: 0;
   }
-
   .filterbar-left::-webkit-scrollbar { display: none; }
-
+  .filterbar-right {
+    flex-shrink: 0;
+  }
   .filter-chip {
     padding: 4px 9px;
     font-size: 0.72rem;
     white-space: nowrap;
     flex-shrink: 0;
   }
+  .sort-select { font-size: 0.72rem; padding: 4px 6px; }
 
-  .sort-select {
-    font-size: 0.72rem;
-    padding: 4px 6px;
-  }
+  .drop-feed { padding: 0 10px 20px; }
 
-  .drop-feed {
-    padding: 0 10px 20px;
-  }
-
-  /* Price inline on right side of card */
-  .drop-card-inline-price {
-    display: none !important;
-  }
-
+  /* Card: rank | info | price-right */
   .drop-card {
-    grid-template-columns: 32px 1fr auto;
-    align-items: center;
+    grid-template-columns: 28px 1fr auto;
     gap: 8px;
     padding: 12px 10px;
+    min-height: unset;
   }
-
-  .drop-card-info {
-    padding: 0;
-  }
+  .drop-card-image { display: none; }
+  .drop-card-prices { display: none; }
+  .drop-card-inline-price { display: none !important; }
+  .drop-card-info { padding: 0; }
 
   .drop-card-mobile-price {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
     gap: 2px;
-    padding-right: 4px;
-    min-width: 72px;
+    min-width: 68px;
   }
-
   .drop-card-mobile-price .mobile-drop {
-    font-size: 0.88rem;
+    font-size: 0.85rem;
     font-weight: 700;
     color: var(--drop-red);
     white-space: nowrap;
   }
-
   .drop-card-mobile-price .mobile-new-price {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     color: var(--gray-500);
     white-space: nowrap;
   }
+
+  .drop-title { font-size: 0.82rem; }
+  .drop-location { font-size: 0.72rem; }
+  .drop-badge { font-size: 0.7rem; padding: 2px 5px; }
 }
 
 /* Very small screens */
 @media (max-width: 380px) {
-  .statbar {
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
-  }
-
-  .stat-card-value {
-    font-size: 0.95rem;
-  }
-
-
+  .statbar { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .stat-card-value { font-size: 0.95rem; }
+  .drop-card { grid-template-columns: 24px 1fr auto; gap: 6px; padding: 10px 8px; }
 }
