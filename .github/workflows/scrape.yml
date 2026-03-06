@@ -8,9 +8,15 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 360      # 6 hours max — covers full sale + rental run
+    timeout-minutes: 360
 
     steps:
+      - name: Wake up API
+        run: |
+          echo "Pinging API at $(date)"
+          curl -s "${{ secrets.API_URL }}/health" || true
+          sleep 10
+
       - name: Trigger scrape
         run: |
           echo "Starting scrape at $(date)"
