@@ -5,7 +5,7 @@ Deployed on Railway
 import os
 import sys
 from pathlib import Path
-from fastapi import FastAPI, Query, HTTPException
+from fastapi import FastAPI, Query, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
@@ -133,6 +133,10 @@ async def api_history(listing_id: str):
 @app.get("/health")
 async def health():
     return {"status": "ok", "service": "dxbdips-api", "version": "1.3.0", "source": "propertyfinder"}
+
+@app.head("/health")
+async def health_head():
+    return Response(status_code=200)
 
 
 
