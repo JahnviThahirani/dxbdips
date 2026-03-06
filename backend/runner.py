@@ -33,11 +33,11 @@ async def run_sales(max_pages: int = 300):
             if result["action"] == "price_drop":
                 total_drops += 1
                 d = result["drop"]
-                d["title"] = listing.get("title")
-                d["area"] = listing.get("area")
+                d["title"]    = listing.get("title")
+                d["area"]     = listing.get("area")
                 d["building"] = listing.get("building")
-                d["type"] = listing.get("type")
-                d["beds"] = listing.get("beds")
+                d["type"]     = listing.get("type")
+                d["beds"]     = listing.get("beds")
                 d["size_sqft"] = listing.get("size_sqft")
                 new_sale_drops.append(d)
                 print(f"  💜 DROP: {listing['title'][:50]}", flush=True)
@@ -76,11 +76,11 @@ async def run_rentals(max_pages: int = 200):
             if result["action"] == "price_drop":
                 total_drops += 1
                 d = result["drop"]
-                d["title"] = listing.get("title")
-                d["area"] = listing.get("area")
+                d["title"]    = listing.get("title")
+                d["area"]     = listing.get("area")
                 d["building"] = listing.get("building")
-                d["type"] = listing.get("type")
-                d["beds"] = listing.get("beds")
+                d["type"]     = listing.get("type")
+                d["beds"]     = listing.get("beds")
                 new_rental_drops.append(d)
                 print(f"  🔑 RENTAL DROP: {listing['title'][:50]}", flush=True)
                 print(f"     AED {d['old_price_aed']:,.0f} → {d['new_price_aed']:,.0f}/yr  (-{d['drop_pct']}%)", flush=True)
@@ -110,11 +110,16 @@ async def run_all(sale_pages: int = 300, rental_pages: int = 200):
 
     rental_result = await run_rentals(max_pages=rental_pages)
 
-    # Post tweets for all new drops detected this run
-    sale_drops = sale_result.get("new_drops", [])
+    sale_drops   = sale_result.get("new_drops", [])
     rental_drops = rental_result.get("new_drops", [])
+
     print(f"\n[Twitter] Firing post_drops() — {len(sale_drops)} sale drops, {len(rental_drops)} rental drops", flush=True)
-    post_drops(sale_drops=sale_drops, rental_drops=rental_drops)
+    post_drops(
+        sale_drops=sale_drops,
+        rental_drops=rental_drops,
+        total_sale_listings=sale_result["listings"],
+        total_rental_listings=rental_result["listings"],
+    )
 
     print("\n" + "="*60, flush=True)
     print(f"  COMPLETE", flush=True)
