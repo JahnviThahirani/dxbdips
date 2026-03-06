@@ -1,15 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
- <head>
-  <meta charset="UTF-8" />
-  <link rel="icon" type="image/png" href="/favicon.png" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="DXB Dips — Real-time price drop tracker for Dubai luxury real estate. Monitor 5M+ AED properties on Property Finder." />
-  <meta property="og:title" content="DXB Dips — Dubai Property Price Drops" />
-  <meta property="og:description" content="Track luxury property price drops in Dubai in real time." />
-  <title>DXB Dips — Dubai Property Price Drops</title>
-</head>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- ═══ Primary SEO ═══ -->
+    <title>DXB Dips — Track Luxury Property Price Drops in Dubai | Real-Time Tracker</title>
+    <meta name="description" content="Free real-time tracker for luxury property price drops in Dubai. Monitor 4M+ AED sales and 250K+ AED/yr rentals on Property Finder. Filter by area, type, and time window." />
+    <meta name="keywords" content="Dubai luxury property price drop, Dubai real estate price tracker, Palm Jumeirah price drop, Downtown Dubai apartment price, Dubai property deals, luxury villa price reduction Dubai, Dubai property market 2025" />
+    <link rel="canonical" href="https://www.dxbdips.com/" />
+
+    <!-- ═══ Open Graph (Facebook, LinkedIn, WhatsApp previews) ═══ -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.dxbdips.com/" />
+    <meta property="og:title" content="DXB Dips — Dubai Luxury Property Price Drop Tracker" />
+    <meta property="og:description" content="Track real-time price drops on Dubai luxury properties. 4M+ AED sales and 250K+ AED/yr rentals. Free, no sign-up." />
+    <meta property="og:image" content="https://www.dxbdips.com/og-image.png" />
+    <meta property="og:site_name" content="DXB Dips" />
+    <meta property="og:locale" content="en_AE" />
+
+    <!-- ═══ Twitter / X Card ═══ -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@DXBDips" />
+    <meta name="twitter:title" content="DXB Dips — Dubai Luxury Property Price Drop Tracker" />
+    <meta name="twitter:description" content="Track real-time price drops on Dubai luxury properties. 4M+ AED sales and 250K+ AED/yr rentals. Free, no sign-up." />
+    <meta name="twitter:image" content="https://www.dxbdips.com/og-image.png" />
+
+    <!-- ═══ Structured Data (JSON-LD) ═══ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "DXB Dips",
+      "url": "https://www.dxbdips.com",
+      "description": "Real-time tracker for luxury property price drops in Dubai. Monitors 4M+ AED sale listings and 250K+ AED/yr rental listings on Property Finder.",
+      "applicationCategory": "RealEstateApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "AED"
+      },
+      "areaServed": {
+        "@type": "City",
+        "name": "Dubai",
+        "containedInPlace": {
+          "@type": "Country",
+          "name": "United Arab Emirates"
+        }
+      },
+      "keywords": "Dubai property price drop, luxury real estate Dubai, property deals Dubai, Palm Jumeirah price drop"
+    }
+    </script>
+
+    <!-- ═══ Geo tags (helps with UAE local search) ═══ -->
+    <meta name="geo.region" content="AE-DU" />
+    <meta name="geo.placename" content="Dubai" />
+    <meta name="geo.position" content="25.2048;55.2708" />
+    <meta name="ICBM" content="25.2048, 55.2708" />
+
+    <!-- ═══ Robots ═══ -->
+    <meta name="robots" content="index, follow" />
+  </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
