@@ -798,6 +798,13 @@ body {
     white-space: nowrap;
     font-family: var(--font-display);
   }
+  .drop-card-mobile-price .mobile-old-price {
+    font-size: 0.65rem;
+    color: var(--gray-400);
+    text-decoration: line-through;
+    white-space: nowrap;
+    font-family: var(--font-display);
+  }
   .drop-card-mobile-price .mobile-new-price {
     font-size: 0.72rem;
     color: var(--gray-500);
