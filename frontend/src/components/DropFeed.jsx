@@ -139,9 +139,7 @@ function SkeletonCard() {
 
 export default function DropFeed({ drops, currency, loading, error, onCardClick, isRental, totalRentalDropsEver }) {
   const handleCardClick = (drop) => {
-    if (drop.url) {
-      onCardClick(drop);
-    }
+    onCardClick(drop);
   };
 
   if (error) {
