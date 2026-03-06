@@ -54,7 +54,7 @@ async def run_sales(max_pages: int = 300):
         print(f"✗ Sale scrape failed: {e}")
         raise
 
-    return {"listings": total_listings, "drops": total_drops, "new_drops": new_rental_drops}
+    return {"listings": total_listings, "drops": total_drops, "new_drops": new_sale_drops}
 
 
 async def run_rentals(max_pages: int = 200):
