@@ -106,6 +106,11 @@ export default function App() {
     return () => clearInterval(id);
   }, [fetchData]);
 
+  const handleRefresh = () => {
+    const controller = new AbortController();
+    fetchData(controller.signal);
+  };
+
   const resetToHome = () => {
     setShowAreas(false);
     setActiveTier("all");
@@ -175,7 +180,7 @@ export default function App() {
         timeWindow={timeWindow}
         setTimeWindow={setTimeWindow}
         timeWindows={TIME_WINDOWS}
-        onRefresh={fetchData}
+        onRefresh={handleRefresh}
         loading={loading}
         onLogoClick={resetToHome}
       />
