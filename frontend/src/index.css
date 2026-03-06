@@ -805,6 +805,16 @@ body {
     white-space: nowrap;
     font-family: var(--font-display);
   }
+  .drop-card-mobile-price .mobile-price-range {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    flex-wrap: nowrap;
+  }
+  .drop-card-mobile-price .mobile-price-arrow {
+    font-size: 0.65rem;
+    color: var(--gray-400);
+  }
   .drop-card-mobile-price .mobile-new-price {
     font-size: 0.72rem;
     color: var(--gray-500);
