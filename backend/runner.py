@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from backend.db import upsert_listing, upsert_rental, log_scrape_start, log_scrape_finish
 from backend.twitter import post_drops
+from backend.emailer import send_alerts
 from scraper.scraper_pf import run_scrape as scrape_pf, run_rental_scrape as scrape_pf_rentals
 
 
@@ -39,6 +40,7 @@ async def run_sales(max_pages: int = 300):
                 d["type"]     = listing.get("type")
                 d["beds"]     = listing.get("beds")
                 d["size_sqft"] = listing.get("size_sqft")
+                d["url"]      = listing.get("url")
                 new_sale_drops.append(d)
                 print(f"  💜 DROP: {listing['title'][:50]}", flush=True)
                 print(f"     {d['old_price_aed']:.2f}M → {d['new_price_aed']:.2f}M AED  (-{d['drop_pct']}%)", flush=True)
@@ -81,6 +83,7 @@ async def run_rentals(max_pages: int = 200):
                 d["building"] = listing.get("building")
                 d["type"]     = listing.get("type")
                 d["beds"]     = listing.get("beds")
+                d["url"]      = listing.get("url")
                 new_rental_drops.append(d)
                 print(f"  🔑 RENTAL DROP: {listing['title'][:50]}", flush=True)
                 print(f"     AED {d['old_price_aed']:,.0f} → {d['new_price_aed']:,.0f}/yr  (-{d['drop_pct']}%)", flush=True)
@@ -103,23 +106,20 @@ async def run_all(sale_pages: int = 300, rental_pages: int = 200):
     print(f"  Sale pages: {sale_pages} | Rental pages: {rental_pages}", flush=True)
     print("="*60 + "\n", flush=True)
 
-    sale_result = await run_sales(max_pages=sale_pages)
-
+    sale_result   = await run_sales(max_pages=sale_pages)
     print("  [Pause 10s between sale and rental scrape...]", flush=True)
     await asyncio.sleep(10)
-
     rental_result = await run_rentals(max_pages=rental_pages)
 
     sale_drops   = sale_result.get("new_drops", [])
     rental_drops = rental_result.get("new_drops", [])
 
-    print(f"\n[Twitter] Firing post_drops() — {len(sale_drops)} sale drops, {len(rental_drops)} rental drops", flush=True)
-    post_drops(
-        sale_drops=sale_drops,
-        rental_drops=rental_drops,
-        total_sale_listings=sale_result["listings"],
-        total_rental_listings=rental_result["listings"],
-    )
+    # ── Twitter (background thread, existing behaviour) ──────────────────────
+    print(f"\n[Twitter] Firing post_drops() — {len(sale_drops)} sale, {len(rental_drops)} rental drops", flush=True)
+    post_drops(sale_drops=sale_drops, rental_drops=rental_drops)
+
+    # ── Email alerts (background thread, same pattern) ───────────────────────
+    send_alerts(sale_drops=sale_drops, rental_drops=rental_drops)
 
     print("\n" + "="*60, flush=True)
     print(f"  COMPLETE", flush=True)
@@ -133,7 +133,7 @@ async def run_all(sale_pages: int = 300, rental_pages: int = 200):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pages", type=int, default=300, help="Sale pages")
+    parser.add_argument("--pages",        type=int, default=300, help="Sale pages")
     parser.add_argument("--rental-pages", type=int, default=200, help="Rental pages")
     args = parser.parse_args()
     asyncio.run(run_all(sale_pages=args.pages, rental_pages=args.rental_pages))

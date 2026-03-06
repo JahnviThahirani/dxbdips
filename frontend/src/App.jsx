@@ -4,6 +4,7 @@ import StatBar from "./components/StatBar";
 import DropFeed from "./components/DropFeed";
 import AreaAnalytics from "./components/AreaAnalytics";
 import HistoryModal from "./components/HistoryModal";
+import FloatingAlertButton from "./FloatingAlertButton";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -271,6 +272,8 @@ export default function App() {
           onClose={() => { setSelectedListing(null); setHistoryData(null); }}
         />
       )}
+
+      <FloatingAlertButton />
     </div>
   );
 }

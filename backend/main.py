@@ -8,13 +8,14 @@ from pathlib import Path
 from fastapi import FastAPI, Query, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from concurrent.futures import ThreadPoolExecutor
+from pydantic import BaseModel, EmailStr
 import asyncio
 import time
 
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
-from backend.db import get_drops, get_stats, get_listing_history, get_client, get_rental_drops, get_rental_stats, get_rental_listing_history
+from backend.db import get_drops, get_stats, get_listing_history, get_client, get_rental_drops, get_rental_stats, get_rental_listing_history, _with_retry
 
 def fetch_listing(listing_id: str) -> dict:
     db = get_client(use_service_key=True)
@@ -26,7 +27,7 @@ def fetch_rental_listing(listing_id: str) -> dict:
     result = db.table("rental_listings").select("*").eq("id", listing_id).execute()
     return result.data[0] if result.data else {}
 
-app = FastAPI(title="DXB Dips API", version="1.3.0")
+app = FastAPI(title="DXB Dips API", version="1.4.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -45,8 +46,6 @@ app.add_middleware(
 executor = ThreadPoolExecutor(max_workers=2)
 
 # ─── In-memory cache ───────────────────────────────────────────────────────────
-# Keyed by (endpoint, hours, sort) → {data, ts}
-# TTL: 10 minutes. Serves stale data instantly; refreshes in background on expiry.
 _cache: dict = {}
 CACHE_TTL = 600  # 10 minutes
 
@@ -132,12 +131,11 @@ async def api_history(listing_id: str):
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "service": "dxbdips-api", "version": "1.3.0", "source": "propertyfinder"}
+    return {"status": "ok", "service": "dxbdips-api", "version": "1.4.0", "source": "propertyfinder"}
 
 @app.head("/health")
 async def health_head():
     return Response(status_code=200)
-
 
 
 AED_TO_USD_YEARLY = 0.2723  # same rate, but price is raw AED not millions
@@ -212,6 +210,49 @@ async def api_rental_history(listing_id: str):
     return data
 
 
+# ─── Email subscription ────────────────────────────────────────────────────────
+
+class SubscribeRequest(BaseModel):
+    email: EmailStr
+    listing_type: str = "both"          # "both" | "sale" | "rental"
+    min_drop_pct: float = 0             # 0 = all drops; e.g. 5 = only ≥5%
+    property_type: str | None = None    # "apartment" | "villa" | None = all
+
+
+@app.post("/api/subscribe")
+async def api_subscribe(body: SubscribeRequest):
+    """
+    Subscribe an email address to price-drop alerts.
+    Idempotent — re-subscribing updates preferences instead of erroring.
+    """
+    db = get_client(use_service_key=True)
+
+    existing = _with_retry(lambda: db.table("email_subscribers")
+                           .select("id")
+                           .eq("email", body.email)
+                           .execute())
+
+    if existing.data:
+        _with_retry(lambda: db.table("email_subscribers").update({
+            "listing_type":  body.listing_type,
+            "min_drop_pct":  body.min_drop_pct,
+            "property_type": body.property_type,
+        }).eq("email", body.email).execute())
+        return {"status": "already_subscribed", "message": "Preferences updated."}
+
+    _with_retry(lambda: db.table("email_subscribers").insert({
+        "email":         body.email,
+        "confirmed":     True,
+        "listing_type":  body.listing_type,
+        "min_drop_pct":  body.min_drop_pct,
+        "property_type": body.property_type,
+    }).execute())
+
+    return {"status": "subscribed", "message": "You're subscribed to DXB Dips price alerts!"}
+
+
+# ─── Scrape trigger ────────────────────────────────────────────────────────────
+
 @app.post("/api/trigger-scrape")
 async def trigger_scrape(
     pages: int = Query(300),
@@ -225,7 +266,6 @@ async def trigger_scrape(
     def run_scrape_sync():
         """Run the scraper in a thread so it never blocks the event loop."""
         import asyncio
-        # FIX: was incorrectly importing from scraper.runner — must be backend.runner
         from backend.runner import run_all
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -236,11 +276,8 @@ async def trigger_scrape(
         finally:
             loop.close()
 
-    # Submit to thread pool — API stays responsive immediately
     loop = asyncio.get_event_loop()
     loop.run_in_executor(executor, run_scrape_sync)
-
-    # Clear cache so next request picks up fresh data after scrape completes
     _cache.clear()
     return {"status": "scrape started", "pages": pages, "rental_pages": rental_pages, "source": "propertyfinder"}
 
