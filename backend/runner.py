@@ -13,27 +13,26 @@ from scraper.scraper_pf import run_scrape as scrape_pf, run_rental_scrape as scr
 
 
 async def run_sales(max_pages: int = 300):
-    print("\n" + "="*60)
-    print("  DXB DIPS — Sale Listings (Property Finder)")
-    print(f"  Pages: {max_pages} (~{max_pages * 20} listings)")
-    print("="*60)
+    print("\n" + "="*60, flush=True)
+    print("  DXB DIPS — Sale Listings (Property Finder)", flush=True)
+    print(f"  Pages: {max_pages} (~{max_pages * 20} listings)", flush=True)
+    print("="*60, flush=True)
 
     run_id = log_scrape_start("propertyfinder")
     total_drops = 0
     total_listings = 0
+    new_sale_drops = []
 
     try:
         listings = await scrape_pf(max_pages=max_pages)
         total_listings = len(listings)
-        print(f"\n[DB] Processing {total_listings} sale listings...")
+        print(f"\n[DB] Processing {total_listings} sale listings...", flush=True)
 
-        new_sale_drops = []
         for i, listing in enumerate(listings):
             result = upsert_listing(listing)
             if result["action"] == "price_drop":
                 total_drops += 1
                 d = result["drop"]
-                # Attach listing metadata for tweet formatting
                 d["title"] = listing.get("title")
                 d["area"] = listing.get("area")
                 d["building"] = listing.get("building")
@@ -41,37 +40,37 @@ async def run_sales(max_pages: int = 300):
                 d["beds"] = listing.get("beds")
                 d["size_sqft"] = listing.get("size_sqft")
                 new_sale_drops.append(d)
-                print(f"  💜 DROP: {listing['title'][:50]}")
-                print(f"     {d['old_price_aed']:.2f}M → {d['new_price_aed']:.2f}M AED  (-{d['drop_pct']}%)")
+                print(f"  💜 DROP: {listing['title'][:50]}", flush=True)
+                print(f"     {d['old_price_aed']:.2f}M → {d['new_price_aed']:.2f}M AED  (-{d['drop_pct']}%)", flush=True)
             if i % 100 == 0 and i > 0:
-                print(f"  [DB] {i}/{total_listings} processed...")
+                print(f"  [DB] {i}/{total_listings} processed...", flush=True)
 
         log_scrape_finish(run_id, total_listings, total_drops)
-        print(f"\n✓ Sales done — {total_listings} listings, {total_drops} drops\n")
+        print(f"\n✓ Sales done — {total_listings} listings, {total_drops} drops\n", flush=True)
 
     except Exception as e:
         log_scrape_finish(run_id, total_listings, total_drops, status="error")
-        print(f"✗ Sale scrape failed: {e}")
+        print(f"✗ Sale scrape failed: {e}", flush=True)
         raise
 
     return {"listings": total_listings, "drops": total_drops, "new_drops": new_sale_drops}
 
 
 async def run_rentals(max_pages: int = 200):
-    print("\n" + "="*60)
-    print("  DXB DIPS — Rental Listings (Property Finder)")
-    print(f"  Pages: {max_pages} (~{max_pages * 20} listings)")
-    print("="*60)
+    print("\n" + "="*60, flush=True)
+    print("  DXB DIPS — Rental Listings (Property Finder)", flush=True)
+    print(f"  Pages: {max_pages} (~{max_pages * 20} listings)", flush=True)
+    print("="*60, flush=True)
 
     total_drops = 0
     total_listings = 0
+    new_rental_drops = []
 
     try:
         listings = await scrape_pf_rentals(max_pages=max_pages)
         total_listings = len(listings)
-        print(f"\n[DB] Processing {total_listings} rental listings...")
+        print(f"\n[DB] Processing {total_listings} rental listings...", flush=True)
 
-        new_rental_drops = []
         for i, listing in enumerate(listings):
             result = upsert_rental(listing)
             if result["action"] == "price_drop":
@@ -83,46 +82,45 @@ async def run_rentals(max_pages: int = 200):
                 d["type"] = listing.get("type")
                 d["beds"] = listing.get("beds")
                 new_rental_drops.append(d)
-                print(f"  🔑 RENTAL DROP: {listing['title'][:50]}")
-                print(f"     AED {d['old_price_aed']:,.0f} → {d['new_price_aed']:,.0f}/yr  (-{d['drop_pct']}%)")
+                print(f"  🔑 RENTAL DROP: {listing['title'][:50]}", flush=True)
+                print(f"     AED {d['old_price_aed']:,.0f} → {d['new_price_aed']:,.0f}/yr  (-{d['drop_pct']}%)", flush=True)
             if i % 100 == 0 and i > 0:
-                print(f"  [DB] {i}/{total_listings} processed...")
+                print(f"  [DB] {i}/{total_listings} processed...", flush=True)
 
-        print(f"\n✓ Rentals done — {total_listings} listings, {total_drops} drops\n")
+        print(f"\n✓ Rentals done — {total_listings} listings, {total_drops} drops\n", flush=True)
 
     except Exception as e:
-        print(f"✗ Rental scrape failed: {e}")
+        print(f"✗ Rental scrape failed: {e}", flush=True)
         raise
 
     return {"listings": total_listings, "drops": total_drops, "new_drops": new_rental_drops}
 
 
 async def run_all(sale_pages: int = 300, rental_pages: int = 200):
-    print("\n" + "="*60)
-    print("  DXB DIPS — Full Scrape Run")
-    print(f"  {__import__('datetime').datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}")
-    print(f"  Sale pages: {sale_pages} | Rental pages: {rental_pages}")
-    print("="*60 + "\n")
+    print("\n" + "="*60, flush=True)
+    print("  DXB DIPS — Full Scrape Run", flush=True)
+    print(f"  {__import__('datetime').datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}", flush=True)
+    print(f"  Sale pages: {sale_pages} | Rental pages: {rental_pages}", flush=True)
+    print("="*60 + "\n", flush=True)
 
     sale_result = await run_sales(max_pages=sale_pages)
 
-    print("  [Pause 10s between sale and rental scrape...]")
+    print("  [Pause 10s between sale and rental scrape...]", flush=True)
     await asyncio.sleep(10)
 
     rental_result = await run_rentals(max_pages=rental_pages)
 
     # Post tweets for all new drops detected this run
-    print("\n[Twitter] Posting price drop alerts...")
-    post_drops(
-        sale_drops=sale_result.get("new_drops", []),
-        rental_drops=rental_result.get("new_drops", []),
-    )
+    sale_drops = sale_result.get("new_drops", [])
+    rental_drops = rental_result.get("new_drops", [])
+    print(f"\n[Twitter] Firing post_drops() — {len(sale_drops)} sale drops, {len(rental_drops)} rental drops", flush=True)
+    post_drops(sale_drops=sale_drops, rental_drops=rental_drops)
 
-    print("\n" + "="*60)
-    print(f"  COMPLETE")
-    print(f"  Sales:   {sale_result['listings']} listings, {sale_result['drops']} drops")
-    print(f"  Rentals: {rental_result['listings']} listings, {rental_result['drops']} drops")
-    print("="*60 + "\n")
+    print("\n" + "="*60, flush=True)
+    print(f"  COMPLETE", flush=True)
+    print(f"  Sales:   {sale_result['listings']} listings, {sale_result['drops']} drops", flush=True)
+    print(f"  Rentals: {rental_result['listings']} listings, {rental_result['drops']} drops", flush=True)
+    print("="*60 + "\n", flush=True)
 
     return {"sales": sale_result, "rentals": rental_result}
 
