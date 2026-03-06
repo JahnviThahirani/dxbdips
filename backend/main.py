@@ -20,6 +20,11 @@ def fetch_listing(listing_id: str) -> dict:
     result = db.table("listings").select("*").eq("id", listing_id).execute()
     return result.data[0] if result.data else {}
 
+def fetch_rental_listing(listing_id: str) -> dict:
+    db = get_client(use_service_key=True)
+    result = db.table("rental_listings").select("*").eq("id", listing_id).execute()
+    return result.data[0] if result.data else {}
+
 app = FastAPI(title="DXB Dips API", version="1.3.0")
 
 app.add_middleware(
@@ -108,6 +113,8 @@ AED_TO_USD_YEARLY = 0.2723  # same rate, but price is raw AED not millions
 
 def enrich_rental_drop(d: dict) -> dict:
     listing = d.get("rental_listings") or {}
+    if not listing.get("title"):
+        listing = fetch_rental_listing(d["listing_id"])
     return {
         "id":             d["id"],
         "listing_id":     d["listing_id"],
