@@ -145,7 +145,7 @@ function SkeletonCard() {
   );
 }
 
-export default function DropFeed({ drops, currency, loading, error, onCardClick, isRental, totalRentalDropsEver }) {
+export default function DropFeed({ drops, currency, loading, error, scrapeInProgress, onCardClick, isRental, totalRentalDropsEver }) {
   const handleCardClick = (drop) => {
     onCardClick(drop);
   };
@@ -191,6 +191,12 @@ export default function DropFeed({ drops, currency, loading, error, onCardClick,
 
   return (
     <div className="drop-feed">
+      {scrapeInProgress && (
+        <div className="scrape-banner">
+          <span className="scrape-banner-icon">🔄</span>
+          <span>Scrape in progress — showing last known data. New drops will appear shortly.</span>
+        </div>
+      )}
       <div className="feed-header">
         <span className="feed-header-text">
           ▸ {drops.length} price drop{drops.length !== 1 ? "s" : ""} detected

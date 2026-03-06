@@ -832,3 +832,22 @@ body {
   .stat-card-value { font-size: 0.95rem; }
   .drop-card { grid-template-columns: 24px 1fr auto; gap: 6px; padding: 10px 8px; }
 }
+
+/* ── Scrape-in-progress banner ─────────────────────────────── */
+.scrape-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fefce8;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #92400e;
+  font-weight: 500;
+}
+.scrape-banner-icon {
+  font-size: 15px;
+  flex-shrink: 0;
+}
