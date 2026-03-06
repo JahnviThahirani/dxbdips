@@ -52,7 +52,6 @@ export default function App() {
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [scrapeInProgress, setScrapeInProgress] = useState(false);
   const [currency, setCurrency] = useState("AED");
   const [timeWindow, setTimeWindow] = useState(TIME_WINDOWS[2]);
   const [activeTier, setActiveTier] = useState("all");
@@ -83,13 +82,10 @@ export default function App() {
       setStats(statsData);
     } catch (e) {
       if (e.name === "AbortError") return; // stale fetch cancelled, ignore
-      // Keep existing data visible if we have it — show soft banner instead
+      // If we have existing data, silently keep it — no disruption to the user
+      // Only show the hard error on first load when there's nothing to show
       setDrops(prev => {
-        if (prev.length > 0) {
-          setScrapeInProgress(true);
-          return prev;
-        }
-        setError(e.message);
+        if (prev.length === 0) setError(e.message);
         return prev;
       });
     } finally {
@@ -123,7 +119,6 @@ export default function App() {
     setShowAreas(false);
     setDrops([]);
     setError(null);
-    setScrapeInProgress(false);
     setStats({});
   };
 
@@ -263,7 +258,6 @@ export default function App() {
             currency={currency}
             loading={loading}
             error={error}
-            scrapeInProgress={scrapeInProgress}
             onCardClick={openHistory}
             isRental={isRental}
             totalRentalDropsEver={isRental ? (stats.total_drops ?? -1) : null}
