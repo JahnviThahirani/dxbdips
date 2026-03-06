@@ -2,9 +2,11 @@
 twitter.py — Posts price drop alerts to @DXBDips on X (Twitter)
 Called by runner.py after each scrape run.
 Strategy: top 3 sales + top 2 rentals by value drop, 5 min apart, dynamic hashtags.
+Tweets are fired in a daemon background thread so they never block the scrape thread pool.
 """
 import os
 import time
+import threading
 import tweepy
 
 TWEET_DELAY = 300  # 5 minutes between tweets
@@ -127,8 +129,37 @@ def format_rental_tweet(drop: dict) -> str:
     return tweet[:280]
 
 
+def _post_tweets_background(all_drops: list, client):
+    """
+    Runs in a daemon thread — posts tweets with 5-min spacing
+    without blocking the scrape thread pool.
+    """
+    posted = 0
+    errors = 0
+    total = len(all_drops)
+
+    for i, (kind, drop) in enumerate(all_drops):
+        try:
+            tweet = format_sale_tweet(drop) if kind == "sale" else format_rental_tweet(drop)
+            client.create_tweet(text=tweet)
+            posted += 1
+            print(f"  🐦 [{posted}/{total}] {kind}: {drop.get('title', '')[:40]}", flush=True)
+            if i < total - 1:
+                print(f"  [Twitter] Waiting {TWEET_DELAY // 60} min before next tweet...", flush=True)
+                time.sleep(TWEET_DELAY)
+        except Exception as e:
+            errors += 1
+            print(f"  [Twitter] Error posting tweet: {e}", flush=True)
+
+    print(f"[Twitter] Done — {posted} posted, {errors} errors", flush=True)
+
+
 def post_drops(sale_drops: list, rental_drops: list):
-    """Post tweets: top 3 sales + top 2 rentals by value drop, 5 min apart."""
+    """
+    Post tweets: top 3 sales + top 2 rentals by value drop, 5 min apart.
+    Fires immediately in a background daemon thread so runner.py reaches
+    COMPLETE without waiting 25+ minutes for all tweets to send.
+    """
     print(f"[Twitter] post_drops() called — {len(sale_drops)} sale, {len(rental_drops)} rental drops", flush=True)
 
     if not os.environ.get("TWITTER_API_KEY"):
@@ -136,26 +167,23 @@ def post_drops(sale_drops: list, rental_drops: list):
         return
 
     client = get_client()
-    posted = 0
-    errors = 0
 
-    top_sales = sorted(sale_drops, key=lambda d: d.get("drop_abs_aed", 0), reverse=True)[:3]
+    top_sales   = sorted(sale_drops,   key=lambda d: d.get("drop_abs_aed", 0), reverse=True)[:3]
     top_rentals = sorted(rental_drops, key=lambda d: d.get("drop_abs_aed", 0), reverse=True)[:2]
-    all_drops = [("sale", d) for d in top_sales] + [("rental", d) for d in top_rentals]
+    all_drops   = [("sale", d) for d in top_sales] + [("rental", d) for d in top_rentals]
 
-    print(f"[Twitter] Posting {len(all_drops)} tweets ({len(top_sales)} sales, {len(top_rentals)} rentals)...", flush=True)
+    if not all_drops:
+        print("[Twitter] No drops to tweet about this run.", flush=True)
+        return
 
-    for i, (kind, drop) in enumerate(all_drops):
-        try:
-            tweet = format_sale_tweet(drop) if kind == "sale" else format_rental_tweet(drop)
-            client.create_tweet(text=tweet)
-            posted += 1
-            print(f"  🐦 [{posted}/{len(all_drops)}] {kind}: {drop.get('title', '')[:40]}", flush=True)
-            if i < len(all_drops) - 1:
-                print(f"  [Twitter] Waiting 5 min before next tweet...", flush=True)
-                time.sleep(TWEET_DELAY)
-        except Exception as e:
-            errors += 1
-            print(f"  [Twitter] Error: {e}", flush=True)
+    print(f"[Twitter] Launching background thread for {len(all_drops)} tweets "
+          f"({len(top_sales)} sales, {len(top_rentals)} rentals)...", flush=True)
 
-    print(f"[Twitter] Done — {posted} posted, {errors} errors", flush=True)
+    t = threading.Thread(
+        target=_post_tweets_background,
+        args=(all_drops, client),
+        daemon=True,   # won't prevent process exit if Railway shuts down
+        name="twitter-poster",
+    )
+    t.start()
+    print(f"[Twitter] Background thread started (id={t.ident}). Runner continuing...", flush=True)

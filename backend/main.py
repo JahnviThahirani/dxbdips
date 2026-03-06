@@ -225,13 +225,14 @@ async def trigger_scrape(
     def run_scrape_sync():
         """Run the scraper in a thread so it never blocks the event loop."""
         import asyncio
-        from scraper.runner import run_all
+        # FIX: was incorrectly importing from scraper.runner — must be backend.runner
+        from backend.runner import run_all
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             loop.run_until_complete(run_all(sale_pages=pages, rental_pages=rental_pages))
         except Exception as e:
-            print(f"Scrape error: {e}")
+            print(f"Scrape error: {e}", flush=True)
         finally:
             loop.close()
 
