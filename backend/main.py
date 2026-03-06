@@ -9,6 +9,7 @@ from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
+import time
 
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
@@ -42,6 +43,21 @@ app.add_middleware(
 
 # Thread pool for running blocking scrape/db work off the event loop
 executor = ThreadPoolExecutor(max_workers=2)
+
+# ─── In-memory cache ───────────────────────────────────────────────────────────
+# Keyed by (endpoint, hours, sort) → {data, ts}
+# TTL: 10 minutes. Serves stale data instantly; refreshes in background on expiry.
+_cache: dict = {}
+CACHE_TTL = 600  # 10 minutes
+
+def cache_get(key: str):
+    entry = _cache.get(key)
+    if entry and (time.time() - entry["ts"]) < CACHE_TTL:
+        return entry["data"]
+    return None
+
+def cache_set(key: str, data):
+    _cache[key] = {"data": data, "ts": time.time()}
 
 AED_TO_USD = 0.2723
 
@@ -84,14 +100,26 @@ async def api_drops(
     min_pct: float = Query(None),
     sort: str = Query("abs"),
 ):
+    key = f"drops:{hours}:{sort}:{type}:{min_pct}:{limit}"
+    cached = cache_get(key)
+    if cached:
+        return cached
     drops = get_drops(hours=hours, limit=limit, prop_type=type, sort=sort, min_pct=min_pct)
     enriched = [enrich_drop(d) for d in drops]
-    return {"drops": enriched, "count": len(enriched), "hours": hours}
+    result = {"drops": enriched, "count": len(enriched), "hours": hours}
+    cache_set(key, result)
+    return result
 
 
 @app.get("/api/stats")
 async def api_stats(hours: int = Query(24)):
-    return get_stats(hours=hours)
+    key = f"stats:{hours}"
+    cached = cache_get(key)
+    if cached:
+        return cached
+    result = get_stats(hours=hours)
+    cache_set(key, result)
+    return result
 
 
 @app.get("/api/history/{listing_id}")
@@ -150,14 +178,26 @@ async def api_rental_drops(
     min_pct: float = Query(None),
     sort: str = Query("abs"),
 ):
+    key = f"rental-drops:{hours}:{sort}:{type}:{min_pct}:{limit}"
+    cached = cache_get(key)
+    if cached:
+        return cached
     drops = get_rental_drops(hours=hours, limit=limit, prop_type=type, sort=sort, min_pct=min_pct)
     enriched = [enrich_rental_drop(d) for d in drops]
-    return {"drops": enriched, "count": len(enriched), "hours": hours}
+    result = {"drops": enriched, "count": len(enriched), "hours": hours}
+    cache_set(key, result)
+    return result
 
 
 @app.get("/api/rental-stats")
 async def api_rental_stats(hours: int = Query(24)):
-    return get_rental_stats(hours=hours)
+    key = f"rental-stats:{hours}"
+    cached = cache_get(key)
+    if cached:
+        return cached
+    result = get_rental_stats(hours=hours)
+    cache_set(key, result)
+    return result
 
 
 @app.get("/api/rental-history/{listing_id}")
@@ -195,6 +235,8 @@ async def trigger_scrape(
     loop = asyncio.get_event_loop()
     loop.run_in_executor(executor, run_scrape_sync)
 
+    # Clear cache so next request picks up fresh data after scrape completes
+    _cache.clear()
     return {"status": "scrape started", "pages": pages, "rental_pages": rental_pages, "source": "propertyfinder"}
 
 
