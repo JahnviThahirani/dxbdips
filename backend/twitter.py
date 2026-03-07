@@ -199,15 +199,15 @@ def build_tweet(
     )
 
     # ── Assemble ─────────────────────────────────────────
-    parts = [hook, "", sale_block]
+    parts = [hook, sale_block]
     if rental_block:
-        parts += ["", bridge, "", rental_block]
-    parts += ["", stats_block, "", close, "", "dxbdips.com"]
+        parts += [bridge, rental_block]
+    parts += [stats_block, close, "dxbdips.com"]
 
     tweet = "\n".join(parts)
 
-    if len(tweet) > 280:
-        tweet = tweet[:277] + "..."
+    if len(tweet) > 25000:
+        tweet = tweet[:24997] + "..."
 
     return tweet
 
