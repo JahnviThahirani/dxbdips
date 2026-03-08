@@ -32,22 +32,28 @@ def get_anthropic_client():
 
 # ── Formatting helpers ───────────────────────────────────────────────────────
 
-def fmt_aed(value_aed: float) -> str:
+def fmt_aed(value_m: float) -> str:
     """
-    Format an AED amount cleanly.
-    Examples: 2_500_000 → 'AED 2.5M' | 150_000 → 'AED 150K' | 500 → 'AED 500'
+    Format a sale price stored in millions of AED.
+    Examples: 9.88 → 'AED 9.9M' | 0.5 → 'AED 500K'
     """
-    if value_aed >= 1_000_000:
-        return f"AED {value_aed / 1_000_000:.1f}M"
-    elif value_aed >= 1_000:
-        return f"AED {value_aed / 1_000:.0f}K"
+    if value_m >= 1:
+        return f"AED {value_m:.1f}M"
     else:
-        return f"AED {value_aed:.0f}"
+        return f"AED {value_m * 1000:.0f}K"
 
 
 def fmt_rental(value_aed: float) -> str:
-    """Same as fmt_aed but appends /yr for rental context."""
-    return fmt_aed(value_aed) + "/yr"
+    """
+    Format a rental price stored in raw AED/yr.
+    Examples: 850000 → 'AED 850K/yr' | 1200000 → 'AED 1.2M/yr'
+    """
+    if value_aed >= 1_000_000:
+        return f"AED {value_aed / 1_000_000:.1f}M/yr"
+    elif value_aed >= 1_000:
+        return f"AED {value_aed / 1_000:.0f}K/yr"
+    else:
+        return f"AED {value_aed:.0f}/yr"
 
 
 def fmt_pct(pct: float) -> str:
