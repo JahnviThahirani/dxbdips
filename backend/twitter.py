@@ -195,7 +195,7 @@ def build_rental_reply(top_rental: dict) -> str:
     [old]/yr → [new]/yr (-pct%)
     """
     area     = top_rental.get("area") or "Dubai"
-    drop_abs = fmt_rental(top_rental.get("drop_abs_aed", 0))  # raw AED/yr
+    drop_abs = fmt_rental(top_rental.get("drop_abs_aed", 0)).replace("/yr", "")  # drop amount only, no /yr
     old      = fmt_rental(top_rental.get("old_price_aed", 0))
     new      = fmt_rental(top_rental.get("new_price_aed", 0))
     pct      = fmt_pct(top_rental.get("drop_pct", 0))
