@@ -195,7 +195,7 @@ def build_rental_reply(top_rental: dict) -> str:
     [old]/yr → [new]/yr (-pct%)
     """
     area     = top_rental.get("area") or "Dubai"
-    drop_abs = fmt_aed(top_rental.get("drop_abs_aed", 0))
+    drop_abs = fmt_rental(top_rental.get("drop_abs_aed", 0))  # raw AED/yr
     old      = fmt_rental(top_rental.get("old_price_aed", 0))
     new      = fmt_rental(top_rental.get("new_price_aed", 0))
     pct      = fmt_pct(top_rental.get("drop_pct", 0))
@@ -272,8 +272,10 @@ def post_drops(
     top_rental = max(rental_drops, key=lambda d: d.get("drop_abs_aed", 0)) if rental_drops else None
 
     # Stats for main tweet
+    # Sale prices stored in millions (e.g. 2.5 = AED 2.5M)
+    # Rental prices stored in raw AED/yr — different unit, don't mix them
     total_drops         = len(sale_drops) + len(rental_drops)
-    total_value_dropped = sum(d.get("drop_abs_aed", 0) for d in sale_drops + rental_drops)
+    total_value_dropped = sum(d.get("drop_abs_aed", 0) for d in sale_drops)  # millions
 
     print("[Twitter] Building tweets...", flush=True)
 
