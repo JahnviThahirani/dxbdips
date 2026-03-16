@@ -72,7 +72,7 @@ export default function App() {
       const dropsEndpoint = isRental ? "rental-drops" : "drops";
       const statsEndpoint = isRental ? "rental-stats" : "stats";
       const [dropsRes, statsRes] = await Promise.all([
-        fetch(`${API}/api/${dropsEndpoint}?hours=${timeWindow.hours}&limit=200&sort=${sort}`, { signal }),
+        fetch(`${API}/api/${dropsEndpoint}?hours=${timeWindow.hours}&limit=1000&sort=${sort}`, { signal }),
         fetch(`${API}/api/${statsEndpoint}?hours=${timeWindow.hours}`, { signal }),
       ]);
       if (!dropsRes.ok || !statsRes.ok) throw new Error("API error");
