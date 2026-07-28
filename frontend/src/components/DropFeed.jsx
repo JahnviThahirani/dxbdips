@@ -47,7 +47,7 @@ function DropCard({ drop, currency, rank, onClick, isRental }) {
           {drop.beds && <span className="tag tag-beds">{drop.beds} BR</span>}
           {drop.size_sqft && <span className="tag tag-size">{Number(drop.size_sqft).toLocaleString()} sqft</span>}
           {isFresh && !drop.is_example && <span className="tag tag-time fresh">New drop</span>}
-          <span className={`tag tag-time ${when.cls}`}>{when.text}</span>
+          {!drop.is_example && <span className={`tag tag-time ${when.cls}`}>{when.text}</span>}
         </div>
         {/* Inline price for tablet/mobile */}
         <div className="drop-card-inline-price">
