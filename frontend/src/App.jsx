@@ -105,8 +105,9 @@ export default function App() {
       setStats(statsData);
     } catch (e) {
       if (e.name === "AbortError") return; // stale fetch cancelled, ignore
-      // Live data unavailable — the static fallback listings below still
-      // give a full, functional feed, so there's nothing more to do here.
+      // Live data unavailable — the static fallback listings still give a
+      // full, functional feed (feed, stats, and area analytics all fall
+      // back to the combined dataset), so there's nothing more to do here.
       console.warn("Live data unavailable, showing static listings only:", e.message);
     } finally {
       setLoading(false);
@@ -162,9 +163,9 @@ export default function App() {
     }
   };
 
-  // Combine live + static so filters, sorting, and counts all operate on
-  // one consistent dataset — this is what makes every feature demonstrable
-  // even with zero live data.
+  // Combine live + static so filters, sorting, counts, the stat cards, and
+  // area analytics all operate on one consistent dataset — this is what
+  // makes every feature demonstrable even with zero live data.
   const combinedDrops = [...drops, ...fallbackDrops];
 
   const tier = PRICE_TIERS.find(t => t.id === activeTier);
@@ -231,7 +232,7 @@ export default function App() {
         </span>
       </div>
 
-      <StatBar stats={stats} drops={drops} currency={currency} isRental={isRental} />
+      <StatBar stats={stats} drops={combinedDrops} currency={currency} isRental={isRental} />
 
       <nav className="tab-nav">
         <div className="tab-nav-row1">
@@ -292,7 +293,7 @@ export default function App() {
         </>
       )}
 
-      {showAreas && <AreaAnalytics drops={drops} currency={currency} loading={loading} isRental={isRental} />}
+      {showAreas && <AreaAnalytics drops={combinedDrops} currency={currency} loading={loading} isRental={isRental} />}
 
       {selectedListing && (
         <HistoryModal

@@ -45,6 +45,16 @@ export default function StatBar({ stats, drops, currency, isRental }) {
     totalDropLabel = drops.length ? formatSaleDropValue(totalDropValue) : "--";
   }
 
+  // "drops" here is the combined static+live set passed from App.jsx, so
+  // these cards stay populated even if the live API/stats endpoint is
+  // fully down — falling back to the combined count keeps the number
+  // meaningful instead of showing "--".
+  const listingsMonitoredValue = stats.unique_listings
+    ? stats.unique_listings.toLocaleString()
+    : (stats.total_scanned
+        ? stats.total_scanned.toLocaleString()
+        : drops.length.toLocaleString());
+
   const cards = [
     {
       icon: "📉",
@@ -61,9 +71,7 @@ export default function StatBar({ stats, drops, currency, isRental }) {
     {
       icon: "🔍",
       label: "Listings Monitored",
-      value: stats.unique_listings
-        ? stats.unique_listings.toLocaleString()
-        : (stats.total_scanned ? stats.total_scanned.toLocaleString() : "--"),
+      value: listingsMonitoredValue,
       sub: isRental ? "Unique rentals tracked" : "Unique properties tracked",
     },
     {
