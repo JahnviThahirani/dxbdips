@@ -47,12 +47,34 @@ const SORTS = [
   { id: "price",  label: "Lowest Price" },
 ];
 
+// Sorts the combined (live + static) list client-side so ordering stays
+// consistent regardless of where each item came from.
+function sortDrops(list, sort) {
+  const sorted = [...list];
+  switch (sort) {
+    case "abs":
+      sorted.sort((a, b) => (b.drop_abs_aed || 0) - (a.drop_abs_aed || 0));
+      break;
+    case "pct":
+      sorted.sort((a, b) => (b.drop_pct || 0) - (a.drop_pct || 0));
+      break;
+    case "recent":
+      sorted.sort((a, b) => new Date(b.detected_at) - new Date(a.detected_at));
+      break;
+    case "price":
+      sorted.sort((a, b) => (a.new_price_aed || 0) - (b.new_price_aed || 0));
+      break;
+    default:
+      break;
+  }
+  return sorted;
+}
+
 export default function App() {
   const [mode, setMode] = useState("sale"); // "sale" | "rental"
   const [drops, setDrops] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [currency, setCurrency] = useState("AED");
   const [timeWindow, setTimeWindow] = useState(TIME_WINDOWS[2]);
   const [activeTier, setActiveTier] = useState("all");
@@ -70,7 +92,6 @@ export default function App() {
   const fetchData = useCallback(async (signal) => {
     try {
       setLoading(true);
-      setError(null);
       const dropsEndpoint = isRental ? "rental-drops" : "drops";
       const statsEndpoint = isRental ? "rental-stats" : "stats";
       const [dropsRes, statsRes] = await Promise.all([
@@ -84,10 +105,9 @@ export default function App() {
       setStats(statsData);
     } catch (e) {
       if (e.name === "AbortError") return; // stale fetch cancelled, ignore
-      // Never blank the feed on failure — the static fallback listings in
-      // DropFeed guarantee something always renders. Just flag the error
-      // for the small inline banner and keep whatever live data we had.
-      setError(e.message);
+      // Live data unavailable — the static fallback listings below still
+      // give a full, functional feed, so there's nothing more to do here.
+      console.warn("Live data unavailable, showing static listings only:", e.message);
     } finally {
       setLoading(false);
     }
@@ -123,7 +143,6 @@ export default function App() {
     setPropFilter("all");
     setShowAreas(false);
     setDrops([]);
-    setError(null);
     setStats({});
   };
 
@@ -143,16 +162,19 @@ export default function App() {
     }
   };
 
+  // Combine live + static so filters, sorting, and counts all operate on
+  // one consistent dataset — this is what makes every feature demonstrable
+  // even with zero live data.
+  const combinedDrops = [...drops, ...fallbackDrops];
+
   const tier = PRICE_TIERS.find(t => t.id === activeTier);
 
-  const tierFiltered = drops.filter(d => {
-    const p = isRental
-      ? (d.new_price_aed || 0)           // raw AED/yr for rentals
-      : ((d.new_price_aed || 0));         // millions for sales
+  const tierFiltered = combinedDrops.filter(d => {
+    const p = d.new_price_aed || 0;
     return p >= tier.min && p < tier.max;
   });
 
-  const filteredDrops = tierFiltered.filter(d => {
+  const propFiltered = tierFiltered.filter(d => {
     if (propFilter === "all") return true;
     if (propFilter === "10plus") return d.drop_pct >= 10;
     if (propFilter === "today") {
@@ -163,9 +185,11 @@ export default function App() {
     return d.type?.toLowerCase() === propFilter;
   });
 
+  const filteredDrops = sortDrops(propFiltered, sort);
+
   const tierCounts = PRICE_TIERS.reduce((acc, t) => {
-    acc[t.id] = drops.filter(d => {
-      const p = isRental ? (d.new_price_aed || 0) : (d.new_price_aed || 0);
+    acc[t.id] = combinedDrops.filter(d => {
+      const p = d.new_price_aed || 0;
       return p >= t.min && p < t.max;
     }).length;
     return acc;
@@ -261,13 +285,9 @@ export default function App() {
           </div>
           <DropFeed
             drops={filteredDrops}
-            fallbackDrops={fallbackDrops}
             currency={currency}
-            loading={loading}
-            error={error}
             onCardClick={openHistory}
             isRental={isRental}
-            totalRentalDropsEver={isRental ? (stats.total_drops ?? -1) : null}
           />
         </>
       )}

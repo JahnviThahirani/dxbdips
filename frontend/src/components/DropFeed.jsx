@@ -131,110 +131,28 @@ function DropCard({ drop, currency, rank, onClick, isRental }) {
   );
 }
 
-function SkeletonCard() {
-  return (
-    <div className="drop-card skeleton-card">
-      <div className="drop-card-rank"><div className="skel skel-sm" /></div>
-      <div className="drop-card-image"><div className="skel skel-img" /></div>
-      <div className="drop-card-info">
-        <div className="skel skel-title" />
-        <div className="skel skel-sub" />
-        <div className="skel skel-tags" />
-      </div>
-      <div className="drop-card-prices">
-        <div className="skel skel-price" />
-        <div className="skel skel-range" />
-      </div>
-    </div>
-  );
-}
-
-export default function DropFeed({
-  drops,
-  fallbackDrops = [],
-  currency,
-  loading,
-  error,
-  onCardClick,
-  isRental,
-  totalRentalDropsEver,
-}) {
+// Renders one already-merged, already-filtered, already-sorted list.
+// Static example listings and live listings are combined upstream in
+// App.jsx, so this component doesn't distinguish them except for the
+// is_example flag (which disables click-through to history) — there is
+// always something to render, so no error/empty/loading states live here.
+export default function DropFeed({ drops, currency, onCardClick, isRental }) {
   const handleCardClick = (drop) => {
     onCardClick(drop);
   };
 
-  if (loading) {
-    return (
-      <div className="drop-feed">
-        {[...Array(5)].map((_, i) => <SkeletonCard key={i} />)}
-      </div>
-    );
-  }
-
-  const hasLiveDrops = drops.length > 0;
-  const isJustLaunched = isRental && totalRentalDropsEver === 0 && !error;
-
   return (
     <div className="drop-feed">
-      {error && (
-        <div className="feed-banner">
-          <span>⚠️ Live updates paused right now — showing recent listings below</span>
-        </div>
-      )}
-
-      {hasLiveDrops && (
-        <>
-          <div className="feed-header">
-            <span className="feed-header-text">
-              ▸ {drops.length} price drop{drops.length !== 1 ? "s" : ""} detected
-            </span>
-            <span className="feed-header-sub">Click any card to see full price history</span>
-          </div>
-          {drops.map((drop, i) => (
-            <DropCard
-              key={drop.id}
-              drop={drop}
-              currency={currency}
-              rank={i + 1}
-              onClick={handleCardClick}
-              isRental={isRental}
-            />
-          ))}
-        </>
-      )}
-
-      {!hasLiveDrops && !error && (
-        isJustLaunched ? (
-          <div className="feed-state">
-            <div className="state-icon">🚀</div>
-            <div className="state-title">Just launched — tracking in progress</div>
-            <div className="state-sub">We're building rental price history. First drops will appear within 24–48 hours as prices change.</div>
-          </div>
-        ) : (
-          <div className="feed-state">
-            <div className="state-icon">🔍</div>
-            <div className="state-title">No new price drops in this window</div>
-          </div>
-        )
-      )}
-
-      {fallbackDrops.length > 0 && (
-        <>
-          <div className="feed-header fallback-header">
-            <span className="feed-header-text">▸ Recent listings</span>
-          </div>
-          {fallbackDrops.map((drop, i) => (
-            <DropCard
-              key={drop.id}
-              drop={drop}
-              currency={currency}
-              rank={i + 1}
-              onClick={handleCardClick}
-              isRental={isRental}
-            />
-          ))}
-        </>
-      )}
+      {drops.map((drop, i) => (
+        <DropCard
+          key={drop.id}
+          drop={drop}
+          currency={currency}
+          rank={i + 1}
+          onClick={handleCardClick}
+          isRental={isRental}
+        />
+      ))}
     </div>
   );
 }

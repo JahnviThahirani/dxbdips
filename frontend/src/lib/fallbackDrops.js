@@ -1,6 +1,7 @@
-// Permanent static fallback listings — real biggest-ever price drops pulled
-// from Supabase. These render ALWAYS, appended below live data, regardless
-// of API/DB status or active filters, so the feed never looks empty.
+// Static fallback listings — real biggest-ever price drops pulled from
+// Supabase. Merged into the same filter/sort pipeline as live drops so
+// every feature (filters, sorting, currency toggle) works even with zero
+// live data or the API fully down.
 
 export const FALLBACK_SALE_DROPS = [
   {
@@ -186,33 +187,8 @@ export const FALLBACK_SALE_DROPS = [
 ];
 
 export const FALLBACK_RENTAL_DROPS = [
-  // NOTE: entry #1 below shows a 90.79% drop (3.15M -> 290K AED/yr), which
-  // looks like a likely data-quality outlier rather than a real rent cut.
-  // Flagged for review — consider swapping for the #11 biggest rental drop
-  // if you'd rather not show this one permanently on the live site.
   {
     id: "fallback-rental-1",
-    listing_id: "pf_61683127",
-    title: "LUXURY 3BR VILLA | READY TO MOVE | PRIME LOCATION",
-    building: "The Magnolias",
-    area: "Abu Dhabi, Yas Island, Yas Acres",
-    type: "villa",
-    beds: 3,
-    size_sqft: 4197,
-    image_url: "https://static.shared.propertyfinder.ae/media/images/listing/FF1NP3E022K37DQG4PTK9905YW/cfc4b3cc-64dd-406c-bed7-4a7cc0950cf7/668x452.jpg",
-    url: "https://www.propertyfinder.ae/en/plp/rent/villa-for-rent-abu-dhabi-yas-island-yas-acres-the-magnolias-2Q1qsKTBY48.html",
-    drop_pct: 90.79,
-    drop_abs_aed: 2860000,
-    drop_abs_usd: 778778,
-    old_price_aed: 3150000,
-    old_price_usd: 857745,
-    new_price_aed: 290000,
-    new_price_usd: 78967,
-    detected_at: "2026-03-10T08:02:43.50084+00:00",
-    is_example: true,
-  },
-  {
-    id: "fallback-rental-2",
     listing_id: "pf_64402618",
     title: "Golf Course Views | Renovated | Bills Included",
     building: "Golf Place 2",
@@ -226,14 +202,14 @@ export const FALLBACK_RENTAL_DROPS = [
     drop_abs_aed: 1290000,
     drop_abs_usd: 351267,
     old_price_aed: 3490000,
-    old_price_usd: 950387,
+    old_price_usd: 950327,
     new_price_aed: 2200000,
     new_price_usd: 599060,
     detected_at: "2026-03-23T14:03:54.220791+00:00",
     is_example: true,
   },
   {
-    id: "fallback-rental-3",
+    id: "fallback-rental-2",
     listing_id: "pf_62856706",
     title: "Elegant Contemporary Villa in Dubai Hills Estate",
     building: "Emerald Hills",
@@ -254,7 +230,7 @@ export const FALLBACK_RENTAL_DROPS = [
     is_example: true,
   },
   {
-    id: "fallback-rental-4",
+    id: "fallback-rental-3",
     listing_id: "pf_60541506",
     title: "Ultra Luxury 6BR Villa | Golf View | Emerald Hills",
     building: "Emerald Hills",
@@ -275,7 +251,7 @@ export const FALLBACK_RENTAL_DROPS = [
     is_example: true,
   },
   {
-    id: "fallback-rental-5",
+    id: "fallback-rental-4",
     listing_id: "pf_56959165",
     title: "Exemplary Bulgari Loft | Full Marina Views",
     building: "Bulgari Resort & Residences 3",
@@ -296,7 +272,7 @@ export const FALLBACK_RENTAL_DROPS = [
     is_example: true,
   },
   {
-    id: "fallback-rental-6",
+    id: "fallback-rental-5",
     listing_id: "pf_62480244",
     title: "New 6BR I Gym I Cinema I Roof Terrace I Pool",
     building: "Signature Villas Frond H",
@@ -317,7 +293,7 @@ export const FALLBACK_RENTAL_DROPS = [
     is_example: true,
   },
   {
-    id: "fallback-rental-7",
+    id: "fallback-rental-6",
     listing_id: "pf_61688357",
     title: "Penthouse | Spacious | All Bills Included",
     building: "Oceana Aegean",
@@ -338,7 +314,7 @@ export const FALLBACK_RENTAL_DROPS = [
     is_example: true,
   },
   {
-    id: "fallback-rental-8",
+    id: "fallback-rental-7",
     listing_id: "pf_62062917",
     title: "Prime Location | Fully Upgraded | Private Pool",
     building: "Al Barsha 2 Villas",
@@ -359,7 +335,7 @@ export const FALLBACK_RENTAL_DROPS = [
     is_example: true,
   },
   {
-    id: "fallback-rental-9",
+    id: "fallback-rental-8",
     listing_id: "pf_16336594",
     title: "Turnkey Dubai Hills Estate Villa Overlooking Golf Course",
     building: "Majestic Vistas (Lamborghini Mansions)",
@@ -380,7 +356,7 @@ export const FALLBACK_RENTAL_DROPS = [
     is_example: true,
   },
   {
-    id: "fallback-rental-10",
+    id: "fallback-rental-9",
     listing_id: "pf_16178932",
     title: "Exceptional Lakefront+Skyline Corner | Renovated",
     building: "Entertainment Foyer",
@@ -398,6 +374,27 @@ export const FALLBACK_RENTAL_DROPS = [
     new_price_aed: 1500000,
     new_price_usd: 408450,
     detected_at: "2026-03-27T13:56:38.692107+00:00",
+    is_example: true,
+  },
+  {
+    id: "fallback-rental-10",
+    listing_id: "pf_62890685",
+    title: "Fully Furnished Villa | Swimming Pool | Garden",
+    building: "Nad Al Sheba 4",
+    area: "Dubai, Nad Al Sheba",
+    type: "villa",
+    beds: 5,
+    size_sqft: 15741,
+    image_url: "https://static.shared.propertyfinder.ae/media/images/listing/H1EJVZ0G2NH2VAFB4A36P6867G/fc1dd3b7-c3fb-4e19-be7f-1b4e2dd8794e/668x452.jpg",
+    url: "https://www.propertyfinder.ae/en/plp/rent/villa-for-rent-dubai-nad-al-sheba-nad-al-sheba-4-2Q7bhzQ4rT6.html",
+    drop_pct: 17.39,
+    drop_abs_aed: 400000,
+    drop_abs_usd: 108920,
+    old_price_aed: 2300000,
+    old_price_usd: 626290,
+    new_price_aed: 1900000,
+    new_price_usd: 517370,
+    detected_at: "2026-03-22T19:39:43.443289+00:00",
     is_example: true,
   },
 ];
