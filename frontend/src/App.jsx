@@ -5,6 +5,7 @@ import DropFeed from "./components/DropFeed";
 import AreaAnalytics from "./components/AreaAnalytics";
 import HistoryModal from "./components/HistoryModal";
 import FloatingAlertButton from "./FloatingAlertButton";
+import { FALLBACK_SALE_DROPS, FALLBACK_RENTAL_DROPS } from "./lib/fallbackDrops";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -64,6 +65,7 @@ export default function App() {
 
   const isRental = mode === "rental";
   const PRICE_TIERS = isRental ? RENTAL_PRICE_TIERS : SALE_PRICE_TIERS;
+  const fallbackDrops = isRental ? FALLBACK_RENTAL_DROPS : FALLBACK_SALE_DROPS;
 
   const fetchData = useCallback(async (signal) => {
     try {
@@ -82,12 +84,10 @@ export default function App() {
       setStats(statsData);
     } catch (e) {
       if (e.name === "AbortError") return; // stale fetch cancelled, ignore
-      // If we have existing data, silently keep it — no disruption to the user
-      // Only show the hard error on first load when there's nothing to show
-      setDrops(prev => {
-        if (prev.length === 0) setError(e.message);
-        return prev;
-      });
+      // Never blank the feed on failure — the static fallback listings in
+      // DropFeed guarantee something always renders. Just flag the error
+      // for the small inline banner and keep whatever live data we had.
+      setError(e.message);
     } finally {
       setLoading(false);
     }
@@ -128,6 +128,7 @@ export default function App() {
   };
 
   const openHistory = async (listing) => {
+    if (listing.is_example) return; // static fallback cards don't have real history
     setSelectedListing(listing);
     setHistoryLoading(true);
     try {
@@ -260,6 +261,7 @@ export default function App() {
           </div>
           <DropFeed
             drops={filteredDrops}
+            fallbackDrops={fallbackDrops}
             currency={currency}
             loading={loading}
             error={error}

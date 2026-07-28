@@ -14,9 +14,13 @@ function DropCard({ drop, currency, rank, onClick, isRental }) {
   const when = timeAgo(drop.detected_at);
   const isFresh = when?.cls === "recent" || when?.cls === "today";
   const pfUrl = drop.url;
+  const clickable = !drop.is_example;
 
   return (
-    <div className={`drop-card tier-${tier}`} onClick={() => onClick(drop)}>
+    <div
+      className={`drop-card tier-${tier} ${drop.is_example ? "example-card" : ""}`}
+      onClick={() => clickable && onClick(drop)}
+    >
       <div className="drop-card-rank">
         <span className={`rank-num ${rank <= 3 ? `rank-${rank}` : ""}`}>#{rank}</span>
       </div>
@@ -42,7 +46,7 @@ function DropCard({ drop, currency, rank, onClick, isRental }) {
           {drop.type && <span className="tag tag-type">{drop.type}</span>}
           {drop.beds && <span className="tag tag-beds">{drop.beds} BR</span>}
           {drop.size_sqft && <span className="tag tag-size">{Number(drop.size_sqft).toLocaleString()} sqft</span>}
-          {isFresh && <span className="tag tag-time fresh">New drop</span>}
+          {isFresh && !drop.is_example && <span className="tag tag-time fresh">New drop</span>}
           <span className={`tag tag-time ${when.cls}`}>{when.text}</span>
         </div>
         {/* Inline price for tablet/mobile */}
@@ -116,7 +120,7 @@ function DropCard({ drop, currency, rank, onClick, isRental }) {
             </div>
           </>
         )}
-            {pfUrl && (
+        {pfUrl && (
           <a href={pfUrl} target="_blank" rel="noopener noreferrer"
             className="view-pf-link" onClick={e => e.stopPropagation()}>
             View on Property Finder ↗
@@ -145,20 +149,19 @@ function SkeletonCard() {
   );
 }
 
-export default function DropFeed({ drops, currency, loading, error, onCardClick, isRental, totalRentalDropsEver }) {
+export default function DropFeed({
+  drops,
+  fallbackDrops = [],
+  currency,
+  loading,
+  error,
+  onCardClick,
+  isRental,
+  totalRentalDropsEver,
+}) {
   const handleCardClick = (drop) => {
     onCardClick(drop);
   };
-
-  if (error) {
-    return (
-      <div className="feed-state">
-        <div className="state-icon">⚠️</div>
-        <div className="state-title">Can't reach the server</div>
-        <div className="state-sub">The API isn't responding - it may be restarting. Try refreshing in a minute.</div>
-      </div>
-    );
-  }
 
   if (loading) {
     return (
@@ -168,45 +171,70 @@ export default function DropFeed({ drops, currency, loading, error, onCardClick,
     );
   }
 
-  if (!drops.length) {
-    // Rental tab: show launch message until first drop ever is detected
-    const isJustLaunched = isRental && totalRentalDropsEver === 0;
-    return (
-      <div className="feed-state">
-        {isJustLaunched ? (
-          <>
-            <div className="state-icon">🚀</div>
-            <div className="state-title">Just launched — tracking in progress</div>
-            <div className="state-sub">We're building rental price history. First drops will appear within 24–48 hours as prices change.</div>
-          </>
-        ) : (
-          <>
-            <div className="state-icon">🔍</div>
-            <div className="state-title">No price drops detected yet</div>
-          </>
-        )}
-      </div>
-    );
-  }
+  const hasLiveDrops = drops.length > 0;
+  const isJustLaunched = isRental && totalRentalDropsEver === 0 && !error;
 
   return (
     <div className="drop-feed">
-<div className="feed-header">
-        <span className="feed-header-text">
-          ▸ {drops.length} price drop{drops.length !== 1 ? "s" : ""} detected
-        </span>
-        <span className="feed-header-sub">Click any card to see full price history</span>
-      </div>
-      {drops.map((drop, i) => (
-        <DropCard
-          key={drop.id}
-          drop={drop}
-          currency={currency}
-          rank={i + 1}
-          onClick={handleCardClick}
-          isRental={isRental}
-        />
-      ))}
+      {error && (
+        <div className="feed-banner">
+          <span>⚠️ Live updates paused right now — showing recent listings below</span>
+        </div>
+      )}
+
+      {hasLiveDrops && (
+        <>
+          <div className="feed-header">
+            <span className="feed-header-text">
+              ▸ {drops.length} price drop{drops.length !== 1 ? "s" : ""} detected
+            </span>
+            <span className="feed-header-sub">Click any card to see full price history</span>
+          </div>
+          {drops.map((drop, i) => (
+            <DropCard
+              key={drop.id}
+              drop={drop}
+              currency={currency}
+              rank={i + 1}
+              onClick={handleCardClick}
+              isRental={isRental}
+            />
+          ))}
+        </>
+      )}
+
+      {!hasLiveDrops && !error && (
+        isJustLaunched ? (
+          <div className="feed-state">
+            <div className="state-icon">🚀</div>
+            <div className="state-title">Just launched — tracking in progress</div>
+            <div className="state-sub">We're building rental price history. First drops will appear within 24–48 hours as prices change.</div>
+          </div>
+        ) : (
+          <div className="feed-state">
+            <div className="state-icon">🔍</div>
+            <div className="state-title">No new price drops in this window</div>
+          </div>
+        )
+      )}
+
+      {fallbackDrops.length > 0 && (
+        <>
+          <div className="feed-header fallback-header">
+            <span className="feed-header-text">▸ Recent listings</span>
+          </div>
+          {fallbackDrops.map((drop, i) => (
+            <DropCard
+              key={drop.id}
+              drop={drop}
+              currency={currency}
+              rank={i + 1}
+              onClick={handleCardClick}
+              isRental={isRental}
+            />
+          ))}
+        </>
+      )}
     </div>
   );
 }
